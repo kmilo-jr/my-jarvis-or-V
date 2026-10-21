@@ -1,0 +1,9 @@
+V 1.8.5 // VOICE INPUT 2.0 LAB
+- Endpoint de fala adaptativo: ~60 ms para confirmar início.
+- Pré-roll de 500 ms para preservar o wake word e o começo da frase.
+- Frases curtas encerram após ~380 ms de silêncio; frases longas usam ~460 ms.
+- Remove a maior parte do silêncio final antes do Whisper para reduzir latência.
+- Silero VAD do faster-whisper ativado como segunda validação, com fallback seguro.
+- Beam size padrão reduzido de 5 para 3 para ganhar velocidade em comandos curtos.
+- Modo legado continua disponível via config/default.json (voice_input_v2_enabled=false).
+- Inclui teste sintético automatizado e teste real de microfone (testar_voice_input_2.bat).

@@ -1,0 +1,19 @@
+V INTERFACE 1.5 — SPEECH SYNC + PARTICLE FIELD
+
+O que mudou na segunda interface:
+- A mandíbula/rosto não estica mais durante a fala.
+- A animação acompanha o estado real de reprodução do TTS.
+- Um envelope de energia com ataque rápido e release suave controla o visual.
+- Novo núcleo de voz na região da boca: glow, aperture, canais de energia e pulsos laterais.
+- Halo e anéis reagem à fala.
+- Mais partículas ao redor da face (campo orbital + poeira de profundidade + sparks de voz).
+- A zona central do rosto permanece limpa para não esconder olhos e mandíbula.
+- Mantido o alvo de ~60 FPS apenas na segunda interface.
+
+Arquivos principais alterados:
+- voice/engine.py
+- ui/mobile_face_core.py
+- ui/amber_window.py
+
+Tudo do V Remote 1.4 foi preservado: LIVE SEARCH, controles avançados, WOL,
+alarmes/lembretes, ponte mobile e leitor de notificações.

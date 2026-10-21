@@ -1,0 +1,6 @@
+V 1.8.7
+- Novo rosto da segunda interface baseado na imagem de referência enviada pelo usuário.
+- Estrutura do rosto convertida em nuvem de partículas neurais com ligações dinâmicas.
+- Olhos luminosos, boca reativa e malha viva sobre a face.
+- Mantido Voice Input 2.0 Lab da 1.8.5/1.8.6.
+- Mantidas melhorias de notícias, janelas internas e mercado.

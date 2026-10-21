@@ -1,0 +1,34 @@
+V PROTOTYPE 1.9.8 — V REMOTE 1.4 / MOBILE FACE
+================================================
+
+NOVO — SEGUNDA INTERFACE
+- A segunda interface agora usa a identidade visual da face do V Remote/mobile.
+- Face vetorial angular, halo discreto e partículas leves.
+- Centro do rosto mantido limpo.
+- Reações visuais para READY, LISTENING, PROCESSING, SPEAKING e ERROR.
+- Animação alvo de ~60 FPS apenas no novo núcleo da segunda interface.
+- Reação de boca/visor durante SPEAKING.
+
+NOVO — V MOBILE
+- Fila local e persistente de ações do iPhone.
+- Alarmes por comando natural.
+- Lembretes por comando natural com suporte inicial a hoje/amanhã e horários.
+- Cartão V MOBILE no Remote para criar alarme/lembrete manualmente.
+- Execução no iPhone via Atalho "V Mobile" e URL scheme oficial shortcuts://.
+- Ação exige toque no iPhone antes de abrir o Atalho.
+
+NOVO — NOTIFICAÇÕES
+- Leitor read-only de wpndatabase.db do Windows.
+- Filtra apenas WhatsApp e Instagram.
+- Detecta novas notificações sem anunciar o histórico na inicialização.
+- Encaminha a notificação ao V Remote.
+- Pode anunciar por voz: "Senhor, nova mensagem...".
+- Não modifica, remove ou limpa notificações do Windows.
+- Requer que o Phone Link consiga espelhar as notificações do iPhone; no iPhone isso exige Bluetooth no PC.
+
+PRESERVADO
+- LIVE SEARCH.
+- Controle remoto avançado.
+- Wake-on-LAN.
+- Spotify/YouTube/voz/Gemini.
+- Pareamento local por PIN.

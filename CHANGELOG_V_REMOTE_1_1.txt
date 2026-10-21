@@ -1,0 +1,8 @@
+V REMOTE 1.1 - WAKE-ON-LAN BASE
+- Mantido o visual atual do V Remote.
+- Adicionado módulo wake_on_lan.py com validação de MAC e Magic Packet padrão.
+- Adicionado botão Wake-on-LAN no painel remoto.
+- Adicionada configuração remote.wake_on_lan em config/default.json.
+- Botão fica desativado até haver MAC válido e enabled=true.
+- Mantido pareamento por PIN e restrição à rede local.
+- Preparado para futuro V Wake Hub/ESP32, necessário para acordar o próprio PC quando ele estiver desligado.

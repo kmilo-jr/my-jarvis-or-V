@@ -1,0 +1,10 @@
+PATCH — SEGUNDA INTERFACE / SÍMBOLO MAIS VISÍVEL
+
+Mudanças feitas:
+- aumento da opacidade geral do símbolo em partículas;
+- aumento da densidade de partículas;
+- partículas centrais maiores e mais brilhantes;
+- glow e halo reforçados;
+- símbolo levemente maior na área central;
+- ligações entre partículas mais visíveis;
+- sem mexer no conceito minimalista do painel.

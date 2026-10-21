@@ -1,0 +1,5 @@
+V 1.8.9
+- Segunda interface refeita do zero usando a geometria real da imagem de referência.
+- Pontos e ligações são extraídos diretamente das linhas do desenho, sem redesenho manual grosseiro.
+- Animação mais sutil para preservar o formato do rosto.
+- Mantido Voice Input 2.0, notícias e mercado.

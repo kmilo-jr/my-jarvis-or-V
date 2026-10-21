@@ -1,0 +1,14 @@
+PATCH — SEGUNDA INTERFACE / CLEAN PANEL OLD STYLE
+
+Mudança real de layout:
+- removida a coluna fixa de navegação lateral;
+- removidos os cards permanentes de notícias, Spotify e relógio da lateral;
+- centro voltou a ficar livre para o símbolo em partículas;
+- mantido apenas um box pequeno de sistema no canto superior direito;
+- conversa, campo de comando e controles de voz ficam num dock compacto embaixo;
+- símbolo em partículas e ~60 FPS da segunda interface foram mantidos.
+
+Como testar:
+1) extraia o ZIP
+2) execute iniciar_v_dual_interface.bat
+3) pressione F6 se abrir primeiro na interface orbital

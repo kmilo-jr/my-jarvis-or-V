@@ -1,0 +1,22 @@
+V PROTOTYPE 1.8.1
+
+CORREÇÕES
+- Corrigido o roteamento de frases naturais como "V, quais são as notícias do dia?".
+- Notícias agora são encaminhadas para news.today antes do Brain/Planner.
+- Adicionado fallback de notícias para busca web quando o Google News RSS falha.
+- Erros web reais são registrados em logs/web_last_error.json.
+- Notícias e pesquisa não passam por uma segunda reescrita do Gemini depois da ferramenta, reduzindo latência.
+
+JANELA INTERNA / HUD
+- Design completamente revisado para Orbital e Amber.
+- Cards por notícia/fonte com título clicável, fonte, data, resumo e botão ABRIR FONTE.
+- Cabeçalho HUD, status LIVE, horário, contagem de fontes e barra de rolagem temática.
+- Botões COPIAR, EXPANDIR/REDUZIR e fechar; ESC também fecha.
+- Painel responsivo e leve: Qt puro, sem navegador Chromium embutido.
+- Evita repetir a lista de manchetes no resumo quando os cards estruturados já estão visíveis.
+
+TESTE RECOMENDADO
+1. Inicie com iniciar_v_dual_interface.bat.
+2. Diga/digite: V, quais são as notícias do dia?
+3. O V deve usar NEWS.TODAY e abrir o HUD interno com cards das fontes.
+4. Teste também: V, quais as notícias de hoje? / V, leia as últimas notícias.

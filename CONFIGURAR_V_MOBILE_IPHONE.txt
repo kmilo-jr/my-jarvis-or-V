@@ -1,0 +1,80 @@
+V MOBILE 1.1 — CONFIGURAÇÃO DO IPHONE
+======================================
+
+O que esta versão faz
+---------------------
+1. O V entende comandos de alarme e lembrete.
+2. Ele envia a ação para o V Remote no iPhone.
+3. No V Remote aparece o botão "EXECUTAR NO IPHONE".
+4. Esse botão usa o esquema oficial de URL do app Atalhos para executar um atalho chamado "V Mobile".
+
+IMPORTANTE
+----------
+O iOS não permite que uma página web execute silenciosamente um atalho em segundo plano.
+Por isso, depois que o V preparar um alarme/lembrete, toque em EXECUTAR NO IPHONE.
+
+CRIAR O ATALHO "V Mobile"
+-------------------------
+No iPhone:
+
+1. Abra o app ATALHOS.
+2. Crie um novo atalho.
+3. Renomeie exatamente para: V Mobile
+4. O atalho receberá uma entrada de texto enviada pelo V.
+5. Use a ação "Dividir Texto" com o separador | (barra vertical).
+6. O primeiro item indica o tipo:
+
+   ALARM|06:30|Alarme do V
+   REMINDER|2026-09-20T14:00|Fazer atividade da faculdade
+
+7. Adicione uma condição "Se" para o primeiro item:
+
+   SE primeiro item = ALARM
+     - segundo item = horário
+     - terceiro item = nome
+     - use a ação do Relógio/Alarmes para criar um alarme nesse horário
+
+   SENÃO SE primeiro item = REMINDER
+     - segundo item = data/hora ISO
+     - terceiro item = texto
+     - converta o segundo item em Data
+     - use a ação do app Lembretes para adicionar um novo lembrete
+
+8. Na primeira execução, permita ao Atalhos acessar Relógio/Alarmes e Lembretes quando o iPhone solicitar.
+
+TESTES
+------
+Pelo V:
+  "V, coloque um alarme para 6h30."
+  "V, me lembre amanhã às 14h de fazer a atividade da faculdade."
+
+Ou diretamente no V Remote:
+  - escolha a hora e toque em CRIAR ALARME;
+  - escreva o lembrete, escolha data/hora e toque em CRIAR LEMBRETE;
+  - toque em EXECUTAR NO IPHONE.
+
+NOTIFICAÇÕES — WHATSAPP E INSTAGRAM
+-----------------------------------
+O V agora possui um leitor read-only do repositório de notificações do Windows.
+Ele filtra SOMENTE notificações que contenham WhatsApp ou Instagram e pode anunciá-las por voz.
+
+Para o iPhone enviar essas notificações ao Windows, é necessário que o Phone Link/Vincular ao Celular esteja pareado com o iPhone. A integração do iPhone com o Phone Link exige Bluetooth no PC.
+
+ALTERNATIVA SEM PHONE LINK OU ATUALIZAÇÃO DO IPHONE
+1. Use o WhatsApp para Windows conectado à sua conta.
+2. Ative as notificações no WhatsApp e em Configurações > Sistema > Notificações do Windows.
+3. Reabra o V pelo iniciador da interface dupla/Orbital.
+4. Receba uma nova mensagem enquanto V e WhatsApp estão funcionando.
+5. Diga “bom dia” para consultar os avisos capturados nas últimas 24 horas.
+
+O leitor aceita avisos do WhatsApp/Instagram recebidos no PC. Phone Link é opcional.
+Ele não consulta o histórico de conversas, nem recupera avisos anteriores à sua inicialização.
+Avisos do navegador dependem de o Windows registrar a identificação do aplicativo no aviso.
+Ausência de avisos capturados não significa ausência de mensagens no celular.
+
+Privacidade
+-----------
+- O leitor do V abre o banco do Windows em modo SOMENTE LEITURA.
+- Ele não limpa nem altera notificações.
+- Por padrão, apenas WhatsApp e Instagram são encaminhados para o V.
+- announce_voice pode ser desligado em config/default.json > mobile > notifications.

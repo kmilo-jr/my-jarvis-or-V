@@ -1,0 +1,23 @@
+V 1.9.6 — MINIMAL FLUID PARTICLE CORE
+
+Mudanças principais:
+- painel da segunda interface voltou ao conceito minimalista do começo;
+- removidos cards laterais permanentes e excesso de informações visuais;
+- sistema reduzido a uma caixa pequena no canto superior direito;
+- conversa e Voice Link ficaram menores;
+- o símbolo de partículas continua como foco central;
+- animação do símbolo melhorada e mantida em ~60 FPS somente na segunda interface;
+- LISTENING: símbolo faz pulso de foco e ondas de escuta;
+- PROCESSING: partículas entram em fluxo/swirl controlado, com scan e arcos de processamento;
+- SPEAKING: símbolo expande e pulsa com cadência irregular de fala, com ondas de energia;
+- READY: respiração e movimento bem sutis para não deixar a interface parada;
+- ERROR: jitter controlado para indicar alerta.
+
+Como testar:
+1. Extraia o ZIP.
+2. Execute iniciar_v_dual_interface.bat.
+3. Se iniciar no modo orbital, pressione F6.
+
+Arquivos principais alterados:
+- ui/amber_window.py
+- ui/amber_neural.py

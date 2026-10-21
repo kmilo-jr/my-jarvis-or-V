@@ -1,0 +1,12 @@
+V Remote 1.7 — P2P estilo Steam
+
+- nova camada p2p_host.py
+- PC conecta de saída ao servidor de sinalização
+- WebRTC DataChannel é a rota preferida
+- relay WebSocket entra automaticamente se o P2P não conectar
+- PIN de pareamento muda a cada sessão
+- room_id + device_token são persistidos no config
+- interface mobile P2P servida pelo servidor público
+- servidor de sinalização/relay incluído em p2p_server/
+- controles, status, comandos, alarmes e lembretes funcionam pela rota P2P/relay
+- acesso externo antigo via cloudflared permanece no projeto, mas fica desativado por padrão

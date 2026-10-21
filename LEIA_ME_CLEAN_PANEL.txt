@@ -1,0 +1,17 @@
+PATCH — SEGUNDA INTERFACE / CLEAN PANEL
+
+Mudanças feitas:
+- painel da segunda interface deixado mais limpo e discreto;
+- fundos dos cards mais suaves;
+- bordas bem menos chamativas;
+- menos poluição visual vermelha nos painéis;
+- símbolo em partículas mantido como núcleo central;
+- estrutura funcional da interface preservada.
+
+Arquivo principal alterado:
+- ui/amber_window.py
+
+Como testar:
+1) extraia o ZIP
+2) execute iniciar_v_dual_interface.bat
+3) pressione F6 se abrir primeiro na interface orbital

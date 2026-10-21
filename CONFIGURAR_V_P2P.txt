@@ -1,0 +1,62 @@
+V REMOTE 1.7 — P2P ESTILO STEAM
+================================
+
+ARQUITETURA
+-----------
+iPhone -> servidor de sinalização <- PC V
+             |          |
+             +-- WebRTC P2P direto (preferido)
+             +-- relay WebSocket (fallback)
+
+O PC só faz conexão de SAÍDA. Não precisa abrir porta no roteador.
+
+1) PREPARE O PC
+---------------
+Execute:
+    PREPARAR_V_P2P.bat
+
+Isso instala `websockets` e `aiortc`.
+
+2) PUBLIQUE O SERVIDOR PEQUENO
+------------------------------
+A pasta `p2p_server` contém tudo para publicar em um serviço que suporte Python + WebSocket.
+Depois de publicado, você terá algo como:
+    https://v-p2p-signal.onrender.com
+
+A URL que o V usa é:
+    wss://v-p2p-signal.onrender.com/ws
+
+3) CONFIGURE O V
+----------------
+Abra config/default.json e procure:
+
+"p2p": {
+  "enabled": true,
+  "signaling_url": "",
+  ...
+}
+
+Coloque a URL WSS:
+
+"signaling_url": "wss://v-p2p-signal.onrender.com/ws"
+
+4) INICIE O V
+-------------
+O console mostrará:
+- PIN P2P da sessão
+- Link do V Remote P2P
+
+No iPhone, abra esse link. O link contém a identidade do seu V no fragmento (#), portanto o token não vai no pedido HTTP normal.
+Digite o PIN mostrado no computador.
+
+5) COMO ELE DECIDE A ROTA
+-------------------------
+- Se WebRTC conectar: mostra `P2P DIRETO`.
+- Se NAT/CGNAT/firewall impedir: mostra `RELAY` e continua funcionando pelo WebSocket.
+
+OBSERVAÇÕES
+-----------
+- O relay desta versão é para comandos/status do V. Para streaming pesado de vídeo/áudio no futuro, podemos adicionar TURN.
+- O PIN muda a cada inicialização do V.
+- room_id e device_token são gerados automaticamente e ficam em config/default.json.
+- Não compartilhe o link P2P do seu V, pois ele contém o token do dispositivo.

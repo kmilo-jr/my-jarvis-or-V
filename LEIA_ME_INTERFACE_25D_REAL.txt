@@ -1,0 +1,22 @@
+V — SEGUNDA INTERFACE 2.5D REAL
+
+Esta versão NÃO usa a arte aprovada como imagem de fundo.
+A interface foi reconstruída em PySide6 com componentes reais.
+
+Inclui:
+- rosto neural 2.5D renderizado por pontos e linhas em tempo real;
+- olhos reativos ao estado do V;
+- parallax com o mouse;
+- painel de CPU/RAM ao vivo;
+- Voice Link funcional;
+- navegação por botões;
+- bloco de notícias conectado ao comando do V;
+- bloco Spotify conectado aos comandos do V;
+- relógio/data em tempo real;
+- chat/transcrição e campo de comando funcionais;
+- F6 preservado para trocar de interface.
+
+TESTE:
+1. Extraia o ZIP.
+2. Rode iniciar_v_dual_interface.bat.
+3. Se abrir no modo orbital, pressione F6.

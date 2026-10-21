@@ -1,0 +1,13 @@
+V INTERFACE 1.5 — SPEECH SYNC + PARTICLE FIELD
+
+- Remove o efeito de esticar/deformar a mandíbula durante a fala.
+- A face mantém a geometria estável enquanto o V fala.
+- VoiceEngine agora expõe um envelope visual sincronizado ao início/fim real do TTS.
+- Ataque rápido + release suave reduzem tremores e movimentos secos.
+- Novo núcleo de voz energético na região da boca.
+- Halo e anéis respondem à intensidade da fala.
+- Campo de partículas ampliado e concentrado ao redor da face.
+- Sparks de voz surgem perto do núcleo enquanto o V fala.
+- Partículas mantêm uma zona limpa sobre olhos/mandíbula.
+- Continua mirando ~60 FPS somente na segunda interface.
+- V Remote, LIVE SEARCH, alarmes/lembretes, notificações, Spotify e WOL preservados.

@@ -1,0 +1,19 @@
+V REMOTE 1.1 - WAKE-ON-LAN
+
+1) Primeiro ative Wake-on-LAN/Power On By PCI-E/PME na BIOS.
+2) No Windows, em Gerenciador de Dispositivos > Adaptador Ethernet > Propriedades,
+   permita que o dispositivo acorde o computador e habilite Magic Packet (se disponível).
+3) Descubra o MAC da Ethernet com: ipconfig /all
+4) Abra config/default.json e altere remote > wake_on_lan:
+
+"wake_on_lan": {
+  "enabled": true,
+  "mac": "AA:BB:CC:DD:EE:FF",
+  "broadcast": "255.255.255.255",
+  "port": 9
+}
+
+IMPORTANTE: nesta fase o botão envia/testa o Magic Packet enquanto o V Remote está ligado.
+Para ligar ESTE PC quando ele estiver desligado, o emissor precisa ficar ligado na rede.
+Na próxima etapa, esse emissor será o V Wake Hub (ESP32 ou outro dispositivo sempre ligado).
+Não abra a porta UDP 9 do roteador para a internet.

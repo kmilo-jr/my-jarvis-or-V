@@ -1,0 +1,22 @@
+V LIVE SEARCH 1.3 — COMO USAR
+
+1. Continue iniciando o V do mesmo jeito que antes.
+2. A sua chave Gemini atual é reutilizada; não é necessária uma segunda chave.
+3. Faça perguntas atuais normalmente, por voz ou texto.
+
+EXEMPLOS
+- V, onde está passando o jogo do Santos?
+- V, quem está liderando nas pesquisas eleitorais no Brasil?
+- V, o que saiu de novo sobre Nintendo Switch?
+- V, qual é a versão mais recente do...?
+
+COMO IDENTIFICAR
+Durante a consulta, o V mostra: LIVE SEARCH • pesquisando na rede.
+Depois, a resposta e as fontes aparecem no painel V / PESQUISA.
+A voz não lê as URLs.
+
+TESTE ISOLADO
+Execute testar_live_search.bat. Ele usa a sua API Gemini e faz uma consulta real com Google Search grounding.
+
+OBSERVAÇÃO
+Google Search grounding pode consumir a cota/faturamento da sua API Gemini conforme o modelo e o plano da chave.

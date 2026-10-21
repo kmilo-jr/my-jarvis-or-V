@@ -1,0 +1,11 @@
+V PROTOTYPE 1.8.3 — NEWS VISUAL + MARKET DATA
+
+- Janela de notícias menor e posicionada no lado esquerdo, no espaço livre da interface.
+- Imagens de notícias: feed -> site original -> busca por manchete -> fallback de imagem.
+- Conversão de previews para PNG para maior compatibilidade com QPixmap.
+- Manchetes do Google News não repetem mais o nome da fonte no título.
+- TTS de notícias evita ler a manchete duas vezes quando o RSS repete o título no resumo.
+- Novo módulo de bolsa/mercado usando cotações do Yahoo Finance sem chave de API.
+- Novas ferramentas: market.overview e market.quote.
+- Exemplos: “V, como está a bolsa?”, “V, como está o Ibovespa?”, “V, qual a cotação da PETR4?”.
+- Mercado/bolsa usa caminho direto, sem segunda passagem desnecessária pelo Gemini.

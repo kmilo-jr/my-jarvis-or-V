@@ -1,0 +1,20 @@
+PATCH — SEGUNDA INTERFACE / REFERENCE FACE CORE
+
+O que foi feito:
+- reconstrução visual do núcleo facial da segunda interface com base na referência enviada;
+- adição de assets em assets/: v_face_reference.png, v_face_silhouette.png, v_face_lineart.png;
+- render em tempo real com shell metálica, line art iluminada, brilho nos olhos e reações por estado;
+- visual mais limpo ao redor do rosto, com menos ruído que as versões anteriores;
+- timer do núcleo visual da segunda interface mantido em ~60 FPS.
+
+Como testar:
+1) extraia o ZIP
+2) execute iniciar_v_dual_interface.bat
+3) pressione F6 se abrir primeiro na interface orbital
+
+Arquivos principais alterados:
+- ui/amber_neural.py
+- ui/amber_window.py
+- assets/v_face_reference.png
+- assets/v_face_silhouette.png
+- assets/v_face_lineart.png

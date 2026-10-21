@@ -1,0 +1,8 @@
+V Remote 1.6 — Externo + Neural Texture
+
+- textura neural adicionada à face da segunda interface
+- modo fora de casa habilitado no servidor remoto
+- novo campo de CHAVE EXTERNA para primeiro pareamento fora da rede local
+- suporte opcional a Cloudflare Quick Tunnel (cloudflared)
+- config/default.json recebeu remote.external_access
+- nova documentação CONFIGURAR_ACESSO_EXTERNO.txt

@@ -1,0 +1,67 @@
+{
+  "assistant": {
+    "name": "V",
+    "version": "Community"
+  },
+  "brain": {
+    "provider": "hybrid",
+    "model": "qwen2.5:3b",
+    "ollama_url": "http://127.0.0.1:11434",
+    "timeout": 25,
+    "temperature": 0.2,
+    "max_history": 12,
+    "planner_enabled": true,
+    "keep_alive": "2m",
+    "primary_provider": "ollama",
+    "gemini_enabled": false,
+    "groq_enabled": false,
+    "live_search_enabled": false
+  },
+  "voice": {
+    "model": "small",
+    "device": "cpu",
+    "compute_type": "int8",
+    "language": "pt",
+    "beam_size": 3,
+    "initial_prompt": "Assistente V em português do Brasil. Comandos naturais de computador.",
+    "tts_enabled": true,
+    "tts_profile": "edge_tts_728",
+    "tts_edge_voice": "pt-BR-AntonioNeural",
+    "tts_edge_rate": "-4%",
+    "tts_edge_pitch": "+0Hz",
+    "tts_edge_volume": "-2%",
+    "tts_dynamic_prosody": false,
+    "voice_input_v2_enabled": true,
+    "v2_stream_block_ms": 30,
+    "v2_pre_roll_seconds": 0.5,
+    "v2_speech_start_blocks": 2,
+    "v2_short_end_silence_seconds": 0.3,
+    "v2_long_end_silence_seconds": 0.5,
+    "v2_silero_filter_enabled": true,
+    "continuous_voice_default": false,
+    "followup_enabled": true,
+    "followup_seconds": 8,
+    "wake_words": ["v", "vi", "ve", "vê", "jarvis"],
+    "tts_robot_enabled": false
+  },
+  "ui": {
+    "animation_fps": 12,
+    "processing_sound_enabled": true,
+    "processing_sound_delay_ms": 260,
+    "processing_sound_volume": 0.16,
+    "processing_sound_file": "assets/sounds/v_processing.wav",
+    "processing_sound_loop": true,
+    "last_visual_mode": "orbital",
+    "visual_theme": "red"
+  },
+  "spotify_api": {
+    "enabled": false,
+    "client_id": ""
+  },
+  "memory": {
+    "enabled": true,
+    "max_items": 200,
+    "persist_history": true,
+    "history_turns": 40
+  }
+}

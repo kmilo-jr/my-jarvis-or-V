@@ -1,0 +1,16 @@
+MODE 2.5D EXATO — PATCH REAL DA SEGUNDA INTERFACE
+
+O que mudou:
+- A interface amber do Dual UI foi alterada de verdade.
+- Arquivos principais alterados: ui/amber_window.py e ui/amber_neural.py
+- Nova arte integrada em: assets/amber_25d_reference.png
+
+Como testar:
+1) Extraia a pasta.
+2) Execute iniciar_v_dual_interface.bat
+3) Caso abra na interface orbital, pressione F6 para alternar.
+4) A segunda interface agora usa diretamente a arte 2.5D aprovada.
+
+Observação:
+- Este patch prioriza fidelidade visual da segunda interface.
+- Os elementos técnicos internos continuam preservados no projeto.

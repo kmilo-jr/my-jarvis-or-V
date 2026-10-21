@@ -1,0 +1,18 @@
+PATCH — SEGUNDA INTERFACE / PARTICLE SYMBOL CORE
+
+O que foi feito:
+- o rosto/face da segunda interface foi substituído por um símbolo em partículas baseado na referência enviada;
+- o símbolo é desenhado em tempo real por partículas e ligações, sem depender de colocar a imagem pronta na tela;
+- movimento fluido e reações por estado (READY, LISTENING, PROCESSING, SPEAKING, ERROR);
+- visual limpo ao redor do símbolo;
+- ~60 FPS somente no núcleo visual da segunda interface.
+
+Arquivo principal alterado:
+- ui/amber_neural.py
+- ui/amber_window.py
+- assets/v_symbol_reference.png
+
+Como testar:
+1) extraia o ZIP
+2) execute iniciar_v_dual_interface.bat
+3) pressione F6 se abrir primeiro na interface orbital

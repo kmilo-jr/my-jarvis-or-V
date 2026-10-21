@@ -1,0 +1,4 @@
+V 1.8.4
+- Nova face robótica procedural na segunda interface, inspirada em um visual tipo Ultron.
+- Olhos vermelhos energizados, placas metálicas e boca luminosa animada quando o V fala.
+- Mantido o restante das melhorias de notícias e mercado da 1.8.3.

@@ -1,0 +1,29 @@
+V PROTOTYPE — LIVE SEARCH 1.3
+
+NOVO
+- Busca automática na web para perguntas que dependem de informação atual.
+- Google Search grounding pelo Gemini usando a ferramenta oficial google_search.
+- Detecta transmissão de jogos, placares/resultados atuais, pesquisas eleitorais, notícias, cotações, versões e lançamentos recentes.
+- Mostra LIVE SEARCH • pesquisando na rede durante a consulta.
+- Exibe as fontes no painel interno V / PESQUISA.
+- A voz lê somente a resposta; URLs ficam visíveis no painel e não são narradas.
+- Salva logs/live_search_last.json com consulta, termos pesquisados e fontes.
+- Se a busca atual falhar, o V não inventa uma resposta de memória.
+
+POLÍTICA / PESQUISAS ELEITORAIS
+- Resposta factual e neutra.
+- Solicita ao modelo instituto, período de campo, amostra/população e margem de erro quando disponíveis.
+- Não faz previsão eleitoral e não recomenda candidato.
+
+EXEMPLOS
+- V, onde está passando o jogo do Santos hoje?
+- V, quais são as pesquisas eleitorais mais recentes no Brasil?
+- V, o que saiu de novo sobre Nintendo Switch?
+- V, qual é a versão mais recente...?
+
+PRESERVADO
+- V Remote 1.2 / controle avançado
+- Wake-on-LAN
+- Spotify
+- voz
+- interfaces atuais

@@ -1,0 +1,17 @@
+V FACE LAB — TESTE 1 / 2D
+
+Este teste NAO substitui a segunda interface original.
+Arquivos originais amber_neural.py e amber_window.py foram preservados.
+
+Para testar no Windows:
+1. Extraia o ZIP.
+2. Execute TESTAR_ROSTO_2D.bat.
+3. Observe o rosto nos estados READY, LISTENING, PROCESSING e SPEAKING.
+
+Objetivo deste modo:
+- rosto totalmente 2D;
+- geometria fixa, sem falso movimento de profundidade;
+- animacao por particulas, energia das linhas, olhos e boca;
+- menor custo grafico e melhor base para a futura tela do gabinete.
+
+Se aprovarmos a direcao visual, o proximo teste sera MODE 2 / 2.5D.

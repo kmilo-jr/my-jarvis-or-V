@@ -1,0 +1,24 @@
+V REMOTE 1.2 — CONTROLE REMOTO AVANÇADO
+
+Adicionado nesta versão:
+- Volume + / Volume - / Mudo
+- Play/Pause global de mídia
+- Abrir Spotify
+- Abrir YouTube
+- Abrir navegador
+- Bloquear Windows (com confirmação no celular)
+- Reiniciar Windows (com confirmação)
+- Desligar Windows (com confirmação e atraso de 3 segundos)
+- Status em tempo real: CPU, RAM e disco
+- Wake-on-LAN da versão 1.1 preservado
+- Troca de interface, microfone, comandos e notícias preservados
+- Interface visual base preservada
+
+SEGURANÇA
+- Continua restrito à rede local nesta etapa.
+- Pareamento por PIN/sessão continua ativo.
+- Ações destrutivas exigem confirmação no V Remote.
+- Não foi aberta nenhuma porta no roteador.
+
+OBSERVAÇÃO
+Wake-on-LAN para o próprio PC desligado ainda exige outro dispositivo ativo na rede (futuro V Wake Hub/ESP32).

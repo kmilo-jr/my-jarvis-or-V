@@ -1,0 +1,13 @@
+PATCH — SEGUNDA INTERFACE
+
+Mudanças feitas:
+- melhoria das partículas da interface amber/segunda interface;
+- aumento do volume de partículas no fundo e ao redor do rosto;
+- partículas orbitais para dar mais profundidade;
+- linhas suaves entre partículas orbitais;
+- partículas energéticas extras no rosto;
+- atualização visual do widget da segunda interface para ~60 FPS;
+- a alteração de 60 FPS foi aplicada apenas ao widget visual da segunda interface (amber_neural.py).
+
+Arquivo principal alterado:
+- ui/amber_neural.py

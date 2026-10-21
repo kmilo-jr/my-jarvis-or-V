@@ -1,0 +1,38 @@
+V REMOTE v1 — CONTROLE REMOTO PELO CELULAR
+
+COMO USAR
+1. PC e celular precisam estar na mesma rede Wi-Fi/LAN.
+2. Execute iniciar_v_dual_interface.bat.
+3. No console do V aparecerão:
+   - endereço do V Remote, por exemplo: http://192.168.0.10:8765
+   - PIN de pareamento de 6 dígitos.
+4. Abra esse endereço no navegador do celular.
+5. Digite o PIN mostrado no PC.
+
+FUNÇÕES DA V1
+- enviar comandos de texto ao V;
+- anterior / pausar / continuar / próxima no Spotify;
+- pedir notícias;
+- alternar entre as duas interfaces;
+- ligar/desligar o modo de voz contínua;
+- visualizar estado do V, interface atual e status do microfone.
+
+SEGURANÇA
+- servidor aceita apenas clientes da rede local/loopback;
+- PIN novo a cada inicialização;
+- sessão autenticada por cookie HttpOnly;
+- limite de tentativas de PIN;
+- não abre porta na internet e não usa port forwarding.
+
+WINDOWS FIREWALL
+Na primeira execução, o Windows pode perguntar se o Python pode se comunicar na rede.
+Permita apenas em Redes privadas para usar o V Remote no Wi-Fi de casa.
+
+AINDA NÃO INCLUÍDO
+- ligar o PC quando ele estiver totalmente desligado (Wake-on-LAN será uma etapa separada);
+- acesso ao V fora de casa.
+
+ARQUIVOS PRINCIPAIS
+- remote_server.py
+- main_dual_ui.py
+- config/default.json

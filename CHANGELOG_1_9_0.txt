@@ -1,0 +1,5 @@
+V 1.9.0
+- Mantida a face direta baseada na referência.
+- Adicionadas animações visíveis: flutuação sutil, energia correndo pelas linhas, varredura luminosa, olhos pulsando e boca reativa ao falar.
+- Animação mais forte sem deformar a estrutura do rosto.
+- Mantido Voice Input 2.0, notícias e mercado.

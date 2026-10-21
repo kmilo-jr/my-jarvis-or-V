@@ -1,0 +1,58 @@
+# Python environments, caches and build output
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.pyd
+build/
+dist/
+*.egg-info/
+
+# Local configuration and credentials. Only the clean template is shareable.
+/config/*
+!/config/default.example.json
+*.env
+.env.*
+!.env.example
+*.dat
+*.pem
+*.key
+*secret*
+*token*
+*credential*
+
+# Personal runtime data, logs, diagnostics and caches
+/data/
+/logs/
+*.log
+*.sqlite
+*.sqlite3
+*.db
+
+# Downloaded models, voice references and large third-party runtimes
+/models/
+/vendor/
+/assets/voice/
+/assets/*reference*
+/assets/*silhouette*
+/assets/*lineart*
+/*_20261003.md
+/*_20261004.md
+/*_20261005.md
+/AVALIACAO_QWEN_V_ALT.md
+/CONFIGURAR_XTTS_LOCAL.md
+/PERFIS_DE_VOZ.md
+/VIDEO_INTERFACE_ANALISE_20261005.md
+/*.png
+/*.jpg
+/*.jpeg
+/*.mp3
+/*.wav
+/*.mp4
+
+# Local editor and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini

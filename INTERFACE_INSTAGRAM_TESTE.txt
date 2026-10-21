@@ -1,0 +1,14 @@
+V 1.6 - INSTAGRAM UI EXPERIMENT - ENV HOTFIX
+
+Este experimento usa o MESMO cerebro, voz, memoria e Tool System do V 1.6.
+
+IMPORTANTE:
+- O ZIP nao inclui a pasta .venv para nao transformar o pacote em centenas de MB/GB.
+- O launcher agora procura automaticamente um ambiente .venv de outro V 1.6 ja configurado na pasta Downloads.
+- Se nao encontrar, ele pede para rodar configurar_prototype.bat uma vez.
+
+ARQUIVO PARA TESTE:
+  iniciar_interface_instagram_teste.bat
+
+A interface normal continua disponivel em:
+  iniciar_v_prototype.bat

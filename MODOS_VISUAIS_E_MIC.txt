@@ -1,0 +1,26 @@
+V 1.7 - DUAL INTERFACE + MIC RECOVERY
+
+INICIAR:
+  iniciar_v_dual_interface.bat
+
+ALTERNAR VISUAL:
+  F6 ou o botão de modo dentro da interface.
+
+MODO ORBITAL:
+  interface azul/ciano inspirada no primeiro vídeo.
+
+MODO NEURAL AMBER:
+  interface escura com face neural e partículas âmbar inspirada no segundo vídeo.
+
+MICROFONE - CORREÇÕES:
+  - corrigido erro interno no cronômetro da captura de frase;
+  - seleção do microfone é lembrada por nome;
+  - se USB/P2 sumir, V tenta recuperar e pode cair para o padrão do Windows;
+  - reconexão automática do stream de entrada;
+  - VAD mais sensível ao início da frase;
+  - pre-roll maior para não perder o "V" no começo;
+  - pausa final um pouco maior para evitar cortar a frase;
+  - nova calibração ao trocar de microfone ou de interface.
+
+IMPORTANTE:
+  use somente iniciar_v_dual_interface.bat. Não abra duas interfaces ao mesmo tempo.

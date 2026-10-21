@@ -1,0 +1,10 @@
+V PROTOTYPE 1.8.2 — NEWS SLIDE MODE
+
+- Notícias agora abrem em modo apresentação dentro do V.
+- Um card por notícia: fonte, manchete, resumo, horário e imagem/preview.
+- Troca automática sincronizada com o fim da fala do V.
+- Anterior, Próxima, Pausar/Continuar e alternância Slides/Lista.
+- Imagens carregam em background; falha de thumbnail não bloqueia a interface.
+- Busca og:image/twitter:image como fallback visual.
+- Mantém correções 1.8.1 de roteamento de notícias e HUD.
+- Mantém Fast Path para YouTube/Spotify.

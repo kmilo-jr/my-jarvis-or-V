@@ -1,0 +1,3 @@
+V 1.8.8.1
+- Corrigido bug que fazia a segunda interface ficar preta: o paintEvent chamava _accent(), mas o método não existia.
+- Mantido o rosto procedural da 1.8.8 e todo o Voice Input 2.0 / notícias / mercado.

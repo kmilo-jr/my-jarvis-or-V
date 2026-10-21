@@ -1,0 +1,36 @@
+V REMOTE — ACESSO FORA DE CASA
+================================
+
+Esta versão já aceita acesso externo autenticado.
+
+Como usar:
+1) Inicie o V normalmente.
+2) No console do V, veja:
+   - PIN de pareamento
+   - CHAVE EXTERNA
+   - Link externo (se houver)
+3) Fora de casa, abra o link externo no iPhone.
+4) No primeiro pareamento externo, informe o PIN e a CHAVE EXTERNA.
+
+Formas de obter o link externo:
+A) CONFIGURAR UMA URL MANUAL
+   - Preencha remote.external_access.public_url em config/default.json.
+   - Essa URL pode vir de um reverse proxy/túnel que você já usa.
+
+B) CLOUDFARE QUICK TUNNEL (recomendado)
+   - Instale o cloudflared no Windows.
+   - Em config/default.json, deixe:
+     "external_access": {
+       "enabled": true,
+       "public_url": "",
+       "access_key": "",
+       "auto_tunnel": true,
+       "tunnel_binary": "cloudflared"
+     }
+   - Reinicie o V.
+   - Quando o cloudflared abrir o túnel, o V mostrará o link externo no console.
+
+Observações:
+- O acesso externo fica protegido por sessão, PIN e CHAVE EXTERNA.
+- Wake-on-LAN continua precisando de um dispositivo sempre ligado em casa para ligar o PC quando ele estiver totalmente desligado.
+- Não é necessário abrir a porta do V diretamente na internet quando usar túnel.

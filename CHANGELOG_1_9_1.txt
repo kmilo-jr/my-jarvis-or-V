@@ -1,0 +1,5 @@
+V 1.9.1
+- Lapidação final da face animada baseada na referência.
+- Olhos mais vivos, boca com mais reação ao falar e energia correndo pelas linhas.
+- Adicionado efeito leve de desmontagem/reorganização no estado PROCESSING.
+- Mantido Voice Input 2.0, notícias e mercado.

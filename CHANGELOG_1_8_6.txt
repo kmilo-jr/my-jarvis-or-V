@@ -1,0 +1,5 @@
+V 1.8.6
+- Novo rosto da segunda interface feito com partículas neurais e malha dinâmica.
+- Visual robótico angular inspirado na ideia do Ultron, sem usar imagem estática.
+- Mantido Voice Input 2.0 Lab da 1.8.5 com pré-roll, detecção mais rápida e benchmark.
+- Mantidas melhorias de notícias e mercado.

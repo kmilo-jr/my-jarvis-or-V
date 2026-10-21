@@ -1,0 +1,12 @@
+PATCH — SEGUNDA INTERFACE 3D LIMPA / 60 FPS
+
+Mudanças feitas:
+- evolução visual da segunda interface para um rosto pseudo-3D;
+- rotação com perspectiva para sensação de profundidade;
+- espaço ao redor da face deixado mais limpo, com menos partículas externas;
+- somente um campo leve de poeira/partículas ao fundo;
+- malha neural da face mantida como elemento principal;
+- timer da segunda interface mantido em ~60 FPS (16 ms).
+
+Arquivo principal alterado:
+- ui/amber_neural.py

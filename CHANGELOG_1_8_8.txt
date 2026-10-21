@@ -1,0 +1,5 @@
+V 1.8.8
+- Reconstrução manual do rosto de referência na segunda interface.
+- Partículas agora seguem estrutura facial controlada: olhos, testa, nariz, bochechas, boca e mandíbula.
+- Removido o oval central da versão 1.8.7 e reduzidos pontos soltos.
+- Mantido Voice Input 2.0 Lab e melhorias de notícias/mercado.
