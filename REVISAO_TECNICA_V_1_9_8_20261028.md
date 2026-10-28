@@ -24,6 +24,7 @@ depois dela, e o que continua em aberto.
 | Versão | `versao.py` é a fonte única (1.9.8 / `V198-LAN-20261028`), usada por `main.py`, `ui/main_window.py`, `main_dual_ui.py`, `ui/amber_window.py` e pelos `.bat` de inicialização. `VERSAO.txt` atualizado. |
 | Config e ambiente | `config/default.example.json` agora é gerado do real (254 chaves, 2 valores anonimizados) por `tools/gerar_config_exemplo.py`; `requirements.lock.txt` regenerado por `pip freeze` (132 pacotes); `.bat` de inicialização usam `.venv`. |
 | Organização | Raiz de ~230 para 55 arquivos: docs em `docs/{guias,historico,changelog,preview}`, scripts em `tools/`, migradores antigos em `docs/historico/migracoes/`. `README.md` reescrito. |
+| Git | O repositório já existia (remote `kmilo-jr/my-jarvis-or-V`) mas o estado da pasta não estava commitado. Criados dois commits na `main`: `8533a9f` (baseline) e `bfee612` (esta refatoração); árvore limpa com 387 arquivos versionados e nenhum segredo em `config/` (só o `default.example.json`). |
 
 **Validação executada**
 
@@ -166,7 +167,7 @@ Config real: 326 linhas · config de exemplo: 67 linhas.
 
 | # | Problema | Onde |
 |---|---|---|
-| C1 | **Sem repositório Git.** Não existe `.git/` — apenas um `.gitignore` bem escrito. Sem histórico, sem diff, sem volta atrás. | raiz |
+| C1 | **Trabalho fora do histórico do Git.** O `.git/` já existia (remote `kmilo-jr/my-jarvis-or-V`), mas o estado atual da pasta não estava commitado — nenhuma alteração tinha diff, baseline ou volta atrás. Resolvido: baseline e refatoração estão em commits na `main`. | raiz |
 | C2 | **≈230 arquivos na raiz do projeto.** ~35 `migrar_config_*`, ~10 `migrar_spotify_*`, 18 `CHANGELOG_*.txt`, ~35 `.md` de notas, 30+ `testar_*.py/.bat`, PNGs de preview. O código que importa está em 7 pastas. | raiz |
 | C3 | **Versão em 4 lugares e todos diferentes:** `VERSAO.txt` = 1.9.8, `main.py:39` = "V 1.6 NEURAL", `ui/main_window.py:206` = "1.8.3", `config/default.json` = "PROTOTYPE 1.8 P2P REMOTE", `iniciar_v_prototype.bat` = "V 1.6". | vários |
 | C4 | **Código morto confirmado:** `_handle_with_ai` (`functional_engine.py:922`) não tem chamador externo; com ele caem `_ai_action_to_command`, `_validate_ai_action`, `_write_brain_router_log`, `_fast_path_candidate`, `_looks_conversational` (~250 linhas). `spotify_controller.py` (510 linhas) não é importado por ninguém. `ui/amber_neural.py`, `ui/instagram_orb.py`, `ui/reference_face_data.py` estão fora do fluxo. | vários |
