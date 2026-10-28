@@ -1,7 +1,26 @@
+// V Spotify Bridge (extensao Spicetify).
+// ATENCAO: este arquivo instalado CONTEM o token do bridge em texto — e o unico
+// jeito de a extensao autenticar, pois JS rodando no Spotify nao tem acesso ao
+// DPAPI do Windows. O configurador restringe o arquivo ao seu usuario, e o V
+// guarda a copia protegida em config/spotify_bridge_token.dat. Se este arquivo
+// vazar, rode configurar_spotify_bridge.bat para ROTACIONAR o token.
 (function vSpotifyBridge() {
   const TOKEN = "__TOKEN__";
   const BASE = "http://127.0.0.1:8766";
   const POLL_MS = 220;
+
+  // Identidade por instancia (varias janelas do Spotify nao compartilham o
+  // mesmo cliente) e header obrigatorio: o token NAO vai mais na query string.
+  const CLIENT = (() => {
+    try {
+      if (window.crypto && crypto.randomUUID) return crypto.randomUUID();
+    } catch (_) {}
+    return "v-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2);
+  })();
+  const HEADERS = {
+    'X-Bridge-Token': TOKEN,
+    'X-Bridge-Client': CLIENT
+  };
 
   if (!window.Spicetify || !Spicetify.Player || !Spicetify.Platform) {
     setTimeout(vSpotifyBridge, 250);
@@ -32,9 +51,9 @@
   }
 
   async function send(path, body) {
-    const r = await fetch(`${BASE}${path}?token=${encodeURIComponent(TOKEN)}`, {
+    const r = await fetch(`${BASE}${path}`, {
       method: 'POST',
-      headers: {'Content-Type':'application/json'},
+      headers: Object.assign({'Content-Type':'application/json'}, HEADERS),
       body: JSON.stringify(body)
     });
     return r;
@@ -68,7 +87,7 @@
 
   async function poll() {
     try {
-      const r = await fetch(`${BASE}/next?token=${encodeURIComponent(TOKEN)}`, {cache:'no-store'});
+      const r = await fetch(`${BASE}/next`, {cache:'no-store', headers: HEADERS});
       if (r.status === 200) {
         const cmd = await r.json();
         let result;

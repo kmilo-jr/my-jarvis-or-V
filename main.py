@@ -3,6 +3,9 @@ import json
 import sys
 from pathlib import Path
 
+from versao import BANNER
+from vlog import setup_logging
+
 BASE = Path(__file__).resolve().parent
 
 
@@ -34,9 +37,10 @@ def build_app():
 
 
 def main():
+    setup_logging()
     from core.crash_diagnostics import enable
     enable()
-    print("=== V 1.6 NEURAL INTERFACE | BUILD V160-NEURAL-FX-20260916 ===")
+    print(f"=== {BANNER} ===")
     from PySide6.QtWidgets import QApplication
     from ui.main_window import MainWindow
     app = QApplication(sys.argv)

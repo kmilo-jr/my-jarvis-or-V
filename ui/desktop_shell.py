@@ -5,24 +5,6 @@ from .future_style import FUTURE_STYLE, icon
 from PySide6.QtWidgets import (QWidget, QFrame, QLabel, QPushButton, QVBoxLayout,
     QHBoxLayout, QGridLayout, QStackedWidget, QScrollArea, QLineEdit, QTextBrowser, QLayout)
 
-STYLE = '''
-QWidget#desktopShell {background:#100c11; color:#f8edf0;}
-QFrame#navigation {background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #26151d,stop:1 #150d14); border:1px solid #63303f; border-radius:16px;}
-QLabel#brand {font-size:28px; font-weight:600; letter-spacing:6px; color:#ffe8ee;}
-QLabel#eyebrow {color:#c88599; font-size:10px; letter-spacing:2px;}
-QLabel#pageTitle {font-size:32px; font-weight:700; color:#fff2f5;}
-QLabel#sectionTitle {font-size:19px; font-weight:650; color:#fff0f3;}
-QLabel#muted {color:#c39ba9; font-size:12px;}
-QLabel#metricValue {font-size:28px; font-weight:700; color:#fff0f3;}
-QPushButton#navItem {text-align:left; padding:11px 12px; border:1px solid transparent; border-radius:9px; background:transparent; color:#d6b6c2; font-size:13px;}
-QPushButton#navItem:hover {background:#351b27; border-color:#784052;}
-QPushButton#navItem:checked {background:qlineargradient(x1:0,y1:0,x2:1,y2:0,stop:0 #7b1b36,stop:1 #381724); border-color:#d25070; color:#fff4f6;}
-QFrame#dashboardCard {background:qlineargradient(x1:0,y1:0,x2:1,y2:1,stop:0 #311721,stop:1 #1b1019); border:1px solid #663042; border-radius:13px;}
-QPushButton#primary {background:#af2e50; color:#fff3f6; border:1px solid #f77d9b; border-radius:8px; padding:10px 18px;}
-QScrollArea {border:0; background:transparent;}
-QLineEdit {background:#21121b; border:1px solid #794255; color:#fff2f5; padding:12px; border-radius:9px;}
-'''
-
 
 def label(text, role='muted'):
     item = QLabel(text); item.setObjectName(role); item.setWordWrap(True)

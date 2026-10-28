@@ -108,9 +108,9 @@ def probe(name, brain=None, remote=None):
             if not port:
                 raise LookupError('remote_endpoint_missing')
             data = http_json(f'http://127.0.0.1:{port}/api/meta')
-            if data.get('access_mode') not in ('local', 'internet'):
+            if data.get('access_mode') != 'local':
                 raise ValueError('invalid_remote_response')
-            detail = 'Servidor remoto local respondeu. Pareamento do celular e acesso externo não testados.'
+            detail = 'Servidor remoto local respondeu. O pareamento do celular é testado no próprio celular, na mesma rede.'
         return ConnectionResult(name, True, 'Conectado', datetime.now().astimezone().isoformat(timespec='seconds'), detail, ACTIONS[name] if name == 'Mensagens' else next_action)
     except Exception as exc:
         # Never render raw exceptions: URLs/bodies may contain API keys or tokens.

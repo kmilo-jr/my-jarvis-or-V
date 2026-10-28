@@ -243,8 +243,7 @@ class GameModeTests(unittest.TestCase):
              patch.object(UiModeManager, '_load_mode', return_value='orbital'), \
              patch.object(UiModeManager, '_save_mode'), \
              patch.object(UiModeManager, '_setup_notification_reader'), \
-             patch.object(UiModeManager, '_start_remote_server'), \
-             patch.object(UiModeManager, '_start_p2p_remote'):
+             patch.object(UiModeManager, '_start_remote_server'):
             manager = UiModeManager(self.app, SimpleNamespace(), SimpleNamespace(skills=[]), VoiceEngine({}))
             try:
                 self.app.processEvents()

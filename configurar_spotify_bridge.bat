@@ -1,7 +1,7 @@
 @echo off
 chcp 65001 >nul
 cd /d "%~dp0"
-title V 1.5 // Configurar Spotify Bridge
+title V 1.9.8 // Configurar Spotify Bridge
 where spicetify >nul 2>&1
 if not %errorlevel%==0 (
   echo Spicetify nao encontrado. Rode instalar_spicetify.bat primeiro.

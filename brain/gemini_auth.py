@@ -1,9 +1,13 @@
 from __future__ import annotations
 
-import base64
 import json
 import os
 from pathlib import Path
+
+from secure_store import SecureStoreError, protect_text, unprotect_text
+from vlog import get_logger
+
+log = get_logger(__name__)
 
 
 def _base_dir() -> Path:
@@ -24,29 +28,39 @@ def save_key(api_key: str, path: Path | None = None) -> dict:
     path = Path(path or key_path())
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    payload: dict
-    if os.name == "nt":
-        try:
-            import win32crypt
-            protected = win32crypt.CryptProtectData(key.encode("utf-8"), "V Gemini API Key", None, None, None, 0)[1]
-            payload = {
-                "version": 1,
-                "protected": True,
-                "scheme": "windows-dpapi-user",
-                "data": base64.b64encode(protected).decode("ascii"),
-            }
-        except Exception:
-            payload = {"version": 1, "protected": False, "scheme": "plain", "data": key}
-    else:
-        payload = {"version": 1, "protected": False, "scheme": "plain", "data": key}
+    # Sem fallback em texto puro: se o DPAPI falhar, a chave NAO e gravada e o
+    # arquivo anterior (se existir) permanece intacto.
+    try:
+        encoded = protect_text(key, "V Gemini API Key")
+    except SecureStoreError as exc:
+        log.warning(
+            "nao foi possivel proteger a API key do Gemini com DPAPI: %s",
+            type(exc).__name__,
+        )
+        raise RuntimeError(
+            "Nao foi possivel salvar a API key do Gemini com seguranca: o DPAPI do "
+            "Windows nao esta disponivel. A chave NAO foi gravada em texto puro. "
+            "Instale/reinstale o pywin32 no .venv e tente novamente."
+        ) from exc
 
+    payload = {
+        "version": 1,
+        "protected": True,
+        "scheme": "windows-dpapi-user",
+        "data": encoded,
+    }
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
     tmp.replace(path)
-    return {"path": str(path), "protected": bool(payload.get("protected")), "scheme": payload.get("scheme")}
+    return {"path": str(path), "protected": True, "scheme": payload["scheme"]}
 
 
 def load_key(config: dict | None = None, path: Path | None = None) -> str:
+    # Compatibilidade: save_key(chave, path) e load_key(path) leem bem, mas o
+    # primeiro argumento de load_key e o config. Aceitar caminho posicional evita
+    # o erro "WindowsPath has no attribute get" em testes e chamadas diretas.
+    if path is None and isinstance(config, (str, Path)):
+        path, config = Path(config), None
     env = str(os.environ.get("GEMINI_API_KEY", "") or "").strip()
     if env:
         return env
@@ -55,19 +69,21 @@ def load_key(config: dict | None = None, path: Path | None = None) -> str:
         return ""
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
-    except Exception:
+    except Exception as exc:
+        log.warning("nao foi possivel ler a API key do Gemini: %s", type(exc).__name__)
         return ""
-    data = payload.get("data", "")
+    if not isinstance(payload, dict):
+        log.warning("API key do Gemini em formato inesperado; sera ignorada")
+        return ""
+    data = str(payload.get("data", "") or "")
     if not data:
         return ""
     if payload.get("protected"):
-        if os.name != "nt":
-            return ""
         try:
-            import win32crypt
-            blob = base64.b64decode(data)
-            clear = win32crypt.CryptUnprotectData(blob, None, None, None, 0)[1]
-            return clear.decode("utf-8").strip()
-        except Exception:
+            return unprotect_text(data, "V Gemini API Key").strip()
+        except SecureStoreError as exc:
+            log.warning("falha ao desproteger a API key do Gemini: %s", type(exc).__name__)
             return ""
-    return str(data).strip()
+    # Formato legado em texto puro: le e sera migrado no proximo save_key.
+    log.warning("API key do Gemini em texto puro no disco; sera migrada na proxima gravacao")
+    return data.strip()

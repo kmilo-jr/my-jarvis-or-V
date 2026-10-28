@@ -1,10 +1,12 @@
 from __future__ import annotations
 import sys
+
+import versao
 from main import build_app
 
 
 def main():
-    print("=== V 1.6 INSTAGRAM UI EXPERIMENT ===")
+    print(f"=== {versao.TITULO} // INSTAGRAM UI EXPERIMENT ===")
     from PySide6.QtWidgets import QApplication
     from ui.instagram_window import InstagramExperimentWindow
     app = QApplication(sys.argv)

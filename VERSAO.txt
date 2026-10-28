@@ -1,1 +1,1 @@
-V PROTOTYPE 1.9.8 — V Remote 1.7 P2P Steam Style
+V PROTOTYPE 1.9.8 — V Remote LAN (controle remoto somente na mesma rede)

@@ -1,10 +1,10 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-title V 1.7 - Dual Interface
+title V 1.9.8 - Dual Interface
 cls
 echo ==========================================================
-echo   V 1.7 - DUAL INTERFACE + MIC RECOVERY
+echo   V 1.9.8 - DUAL INTERFACE + MIC RECOVERY
 echo   F6 alterna: ORBITAL ^<^> NEURAL AMBER
 echo ==========================================================
 echo.

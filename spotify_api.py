@@ -16,11 +16,16 @@ from urllib.parse import parse_qs, urlencode, urlparse
 
 import requests
 
+from secure_store import SecureStoreError, protect_json, unprotect_json
+from vlog import get_logger
+
 BASE = Path(__file__).resolve().parent
 CONFIG_PATH = BASE / "config" / "default.json"
 TOKEN_PATH = BASE / "config" / "spotify_token.json"
 API = "https://api.spotify.com/v1"
 ACCOUNTS = "https://accounts.spotify.com"
+
+log = get_logger(__name__)
 
 
 def _norm(text: str) -> str:
@@ -51,24 +56,92 @@ def save_client_id(client_id: str):
     CONFIG_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
+class SpotifyAPIError(RuntimeError):
+    pass
+
+
+# Formato atual de config/spotify_token.json:
+#   {"version": 2, "protect": "dpapi", "scheme": "windows-dpapi-user",
+#    "data": "<token JSON completo, protegido com DPAPI e em base64>"}
+# Arquivos antigos guardavam access_token/refresh_token direto no topo do
+# JSON, em texto puro. Eles continuam sendo lidos e, na proxima gravacao,
+# passam a ser gravados protegidos (migracao transparente).
+_TOKEN_VERSION = 2
+_TOKEN_PROTECT = "dpapi"
+_TOKEN_SCHEME = "windows-dpapi-user"
+
+
 def _read_token():
     try:
-        return json.loads(TOKEN_PATH.read_text(encoding="utf-8"))
-    except Exception:
+        raw = json.loads(TOKEN_PATH.read_text(encoding="utf-8"))
+    except FileNotFoundError:
         return {}
+    except Exception as exc:
+        log.warning("nao foi possivel ler o token do Spotify: %s", type(exc).__name__)
+        return {}
+    if not isinstance(raw, dict):
+        log.warning("token do Spotify em formato inesperado; sera ignorado")
+        return {}
+    scheme = str(raw.get("protect") or "plain").strip().lower()
+    if scheme != _TOKEN_PROTECT:
+        # Formato legado em texto puro: apenas le. A migracao acontece no
+        # proximo _write_token bem-sucedido.
+        return raw
+    encoded = str(raw.get("data") or "").strip()
+    if not encoded:
+        log.warning("token do Spotify marcado como DPAPI sem blob; sera ignorado")
+        return {}
+    try:
+        token = unprotect_json(encoded, "V Spotify OAuth")
+    except SecureStoreError as exc:
+        log.warning("falha ao desproteger o token do Spotify: %s", type(exc).__name__)
+        raise SpotifyAPIError(
+            "Nao foi possivel ler o token do Spotify protegido pelo Windows (DPAPI). "
+            "O arquivo pode ser de outro usuario/PC. Rode configurar_spotify_api.bat "
+            "e autorize o Spotify novamente."
+        ) from exc
+    if not isinstance(token, dict):
+        log.warning("token do Spotify descriptografado em formato inesperado; sera ignorado")
+        return {}
+    return token
 
 
 def _write_token(token):
-    TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
-    TOKEN_PATH.write_text(json.dumps(token, ensure_ascii=False, indent=2), encoding="utf-8")
+    """Grava o token OAuth cifrado com DPAPI. Nunca grava segredo em claro.
+
+    Se o DPAPI falhar, levanta SpotifyAPIError de forma explicita e deixa o
+    arquivo anterior intacto (gravacao atomica via temporario + replace).
+    """
+    payload_token = dict(token or {})
     try:
-        os.chmod(TOKEN_PATH, 0o600)
-    except Exception:
-        pass
-
-
-class SpotifyAPIError(RuntimeError):
-    pass
+        protected = protect_json(payload_token, "V Spotify OAuth")
+    except SecureStoreError as exc:
+        log.warning(
+            "nao foi possivel proteger o token do Spotify com DPAPI: %s",
+            type(exc).__name__,
+        )
+        raise SpotifyAPIError(
+            "Nao foi possivel salvar o token do Spotify com seguranca: o DPAPI do "
+            "Windows nao esta disponivel. Nada foi gravado e o token anterior foi "
+            "mantido. Instale/reinstale o pywin32 no .venv e tente novamente."
+        ) from exc
+    payload = {
+        "version": _TOKEN_VERSION,
+        "protect": _TOKEN_PROTECT,
+        "scheme": _TOKEN_SCHEME,
+        "data": protected,
+    }
+    TOKEN_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = TOKEN_PATH.with_suffix(TOKEN_PATH.suffix + ".tmp")
+    try:
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp.replace(TOKEN_PATH)
+    finally:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
 
 
 def _response_json(response, *, context="Spotify", allow_empty=False):

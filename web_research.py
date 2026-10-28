@@ -126,7 +126,7 @@ def fetch_news(topic: str | None = None, limit: int = 6) -> list[WebItem]:
             desc = _clean(raw_desc)
 
             # Alguns feeds já trazem thumbnail no description/media namespace.
-            # Quando não houver, o HUD 1.8.3 tenta descobrir og:image em background.
+            # Quando não houver, o HUD tenta descobrir og:image em background.
             image_url = ""
             try:
                 desc_soup = BeautifulSoup(html.unescape(raw_desc), "html.parser")

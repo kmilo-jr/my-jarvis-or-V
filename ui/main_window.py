@@ -9,6 +9,7 @@ import random
 import re
 from collections import deque
 import psutil
+import versao
 from PySide6.QtCore import QObject, QThread, QTimer, Signal, Slot, Qt, QRect
 from PySide6.QtGui import QKeySequence, QShortcut
 from PySide6.QtWidgets import (
@@ -190,7 +191,7 @@ class MainWindow(QMainWindow):
         self.mode_switch_callback = None
         self._startup_greeting_enabled = bool(startup_greeting)
 
-        # News Slide Mode 1.8.3. A troca de card acompanha o TTS real do V:
+        # News Slide Mode. A troca de card acompanha o TTS real do V:
         # o próximo slide só aparece depois que a fala do anterior terminou.
         self._news_slide_items = []
         self._news_slide_index = -1
@@ -203,14 +204,14 @@ class MainWindow(QMainWindow):
         self._news_slide_timer.timeout.connect(self._poll_news_slideshow)
         self._active_panel_kind = ""
 
-        self.setWindowTitle("V Prototype 1.8.3 // NEWS VISUAL + MARKET DATA + FAST ACTIONS")
+        self.setWindowTitle(f"{versao.TITULO} // NEWS VISUAL + MARKET DATA + FAST ACTIONS")
         self.resize(1500, 880); self.setMinimumSize(1180, 720); self.setStyleSheet(APP_STYLE)
         self._build_ui(); self._add_session_controls(); self._wire_internal_panel(); self._load_mics(); self._start_timers()
         from .game_mode import GameModeController
         self.game_mode = GameModeController(self, self.session_toolbar)
         self._mode_shortcut = QShortcut(QKeySequence("F6"), self)
         self._mode_shortcut.activated.connect(self.request_mode_switch)
-        self.append_v("V Prototype 1.8.3 // NEWS VISUAL + MARKET DATA + FAST ACTIONS + SPOTIFY")
+        self.append_v(f"{versao.TITULO} // NEWS VISUAL + MARKET DATA + FAST ACTIONS + SPOTIFY")
         if self._startup_greeting_enabled:
             QTimer.singleShot(700, self._startup_greeting)
 
@@ -526,7 +527,7 @@ class MainWindow(QMainWindow):
     def _build_ui(self):
         root = QWidget(); self.setCentralWidget(root); outer = QVBoxLayout(root); outer.setContentsMargins(18, 12, 18, 14)
         header = QHBoxLayout(); title = QLabel("V"); title.setObjectName("title")
-        brand = QLabel("PROTOTYPE 1.6  //  NEURAL INTERFACE + PROCESS FX"); brand.setObjectName("subtle")
+        brand = QLabel(f"{versao.TITULO.upper()}  //  NEURAL INTERFACE + PROCESS FX"); brand.setObjectName("subtle")
         self.state_label = QLabel("● SYSTEM ONLINE"); self.state_label.setObjectName("statusOnline"); self.clock = QLabel("")
         header.addWidget(title); header.addWidget(brand); header.addStretch(1); header.addWidget(self.state_label); header.addSpacing(20); header.addWidget(self.clock); outer.addLayout(header)
         body = QHBoxLayout(); body.setSpacing(12); outer.addLayout(body, 1)
@@ -594,7 +595,7 @@ class MainWindow(QMainWindow):
             mem_text = "MEMÓRIA LOCAL: status indisponível"
         self.memory_status = QLabel(mem_text); self.memory_status.setObjectName("subtle"); rl.addWidget(self.memory_status)
         self.latency_status = QLabel("LATÊNCIA: aguardando medição"); self.latency_status.setObjectName("subtle"); rl.addWidget(self.latency_status)
-        build = QLabel("BUILD ID: V160-NEURAL-FX-20260916"); build.setObjectName("statusOnline"); rl.addWidget(build)
+        build = QLabel(f"BUILD ID: {versao.BUILD}"); build.setObjectName("statusOnline"); rl.addWidget(build)
         hint = QLabel("Sem push-to-talk. Ao ativar, fique em silêncio por ~1 segundo para calibrar o ambiente. Depois fale normalmente: V, ... O V espera sua frase terminar antes de transcrever."); hint.setWordWrap(True); hint.setObjectName("subtle"); rl.addWidget(hint)
         rl.addStretch(1); self.last_action = QLabel("Nenhuma ação executada."); self.last_action.setWordWrap(True); self.last_action.setObjectName("subtle"); rl.addWidget(self.last_action); body.addWidget(right, 26)
 

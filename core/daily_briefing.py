@@ -4,6 +4,13 @@ from datetime import datetime, timedelta
 import re
 import unicodedata
 
+from vlog import get_logger
+
+log = get_logger(__name__)
+
+# Um provedor lento não pode segurar o resumo do dia inteiro.
+SOURCE_TIMEOUT_SECONDS = 9.0
+
 
 def is_briefing_request(text):
     text = unicodedata.normalize('NFKD', str(text)).encode('ascii', 'ignore').decode().lower()
@@ -64,8 +71,8 @@ def explain_card(item, brain=None):
         answer = brain.chat(prompt, [], context)
         if isinstance(answer, str) and answer.strip():
             return answer.strip()
-    except Exception:
-        pass
+    except Exception as exc:
+        log.warning("explicação do cartão indisponível: %s", type(exc).__name__)
     return 'Não consegui gerar a explicação agora. ' + fallback
 
 
@@ -212,17 +219,24 @@ class DailyBriefing:
                    (name == 'gmail' and self.settings['email_count'] == 0 or name == 'notícias' and self.settings['news_count'] == 0)]
         sources.sort(key=lambda pair: self.settings['order'].index(pair[0]))
         # I/O remains off the GUI thread; one unavailable provider cannot erase the others.
-        with ThreadPoolExecutor(max_workers=5, thread_name_prefix='V-Briefing') as pool:
+        pool = ThreadPoolExecutor(max_workers=5, thread_name_prefix='V-Briefing')
+        try:
             futures = [(name, pool.submit(fetch)) for name, fetch in sources]
             for name, future in futures:
                 if progress:
                     progress('Resumo do dia · consultando ' + name)
                 try:
-                    result = future.result()
+                    result = future.result(timeout=SOURCE_TIMEOUT_SECONDS)
                     cards.extend(result if isinstance(result, list) else [result])
-                except Exception:
+                except Exception as exc:
+                    # Timeout ou falha de um provedor vira cartão de indisponível,
+                    # sem interromper os demais assuntos.
+                    log.warning('resumo do dia: fonte %s indisponível (%s)', name, type(exc).__name__)
                     cards.append(card(name, name.capitalize() + ' indisponível',
                                       f'Não consegui consultar {name} agora. Vou seguir com os outros assuntos.', ok=False))
+        finally:
+            # Não espera provedor travado no encerramento do bloco.
+            pool.shutdown(wait=False, cancel_futures=True)
         for item in cards:
             item['speech'] = concise_speech(item)
         return cards

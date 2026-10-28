@@ -1,10 +1,10 @@
 @echo off
 setlocal EnableExtensions
 cd /d "%~dp0"
-title V - Instagram UI Experiment
+title V 1.9.8 - Instagram UI Experiment
 cls
 echo ==========================================================
-echo   V 1.6 - INSTAGRAM UI EXPERIMENT - ENV HOTFIX
+echo   V 1.9.8 - INSTAGRAM UI EXPERIMENT
 echo ==========================================================
 echo.
 
@@ -16,9 +16,9 @@ if exist ".venv\Scripts\python.exe" (
 )
 
 rem 2) If this experimental copy has no .venv, reuse the environment
-rem    from another V 1.6 folder already configured in Downloads.
+rem    from another V folder already configured in Downloads.
 if not defined VPY (
-    for /f "usebackq delims=" %%P in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=Join-Path $env:USERPROFILE 'Downloads'; if(Test-Path $root){ Get-ChildItem -LiteralPath $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue ^| Where-Object { $_.FullName -like '*V_PROTOTYPE_1_6*\.venv\Scripts\python.exe' } ^| Select-Object -First 1 -ExpandProperty FullName }"`) do set "VPY=%%P"
+    for /f "usebackq delims=" %%P in (`powershell -NoProfile -ExecutionPolicy Bypass -Command "$root=Join-Path $env:USERPROFILE 'Downloads'; if(Test-Path $root){ Get-ChildItem -LiteralPath $root -Filter python.exe -File -Recurse -ErrorAction SilentlyContinue ^| Where-Object { $_.FullName -like '*V_PROTOTYPE*\.venv\Scripts\python.exe' } ^| Select-Object -First 1 -ExpandProperty FullName }"`) do set "VPY=%%P"
 )
 
 rem 3) Last fallback: system Python 3.12, but only if PySide6 is installed there.

@@ -5,6 +5,7 @@ from pathlib import Path
 from PySide6.QtCore import QObject,QTimer,Signal,Slot
 from PySide6.QtWidgets import QApplication
 from main import build_app
+from versao import TITULO
 
 BASE=Path(__file__).resolve().parent
 
@@ -24,11 +25,6 @@ class UiModeManager(QObject):
         self.remote_bridge.commandRequested.connect(self._remote_command)
         self.remote_bridge.actionRequested.connect(self._remote_action)
         self.remote_server=None
-        self.remote_tunnel=None
-        self.p2p_host=None
-        self.remote_external_key=""
-        self.remote_public_url=""
-        self.remote_access_mode="local"
         self.wake_config=None
         self._create_window(self.mode, startup_greeting=True)
         self._remote_timer=QTimer(self); self._remote_timer.timeout.connect(self._refresh_remote_status); self._remote_timer.start(500)
@@ -36,7 +32,6 @@ class UiModeManager(QObject):
         self._notification_timer=QTimer(self); self._notification_timer.timeout.connect(self._poll_iphone_notifications); self._notification_timer.start(2200)
         self._setup_notification_reader()
         self._start_remote_server()
-        self._start_p2p_remote()
 
     def _setup_notification_reader(self):
         try:
@@ -87,14 +82,10 @@ class UiModeManager(QObject):
                 remote_cfg=cfg.get('remote',{}) or {}
                 enabled=bool(remote_cfg.get('enabled',True))
                 port=int(remote_cfg.get('port',8765))
-                external_cfg=(remote_cfg.get('external_access',{}) or {})
-                allow_internet=bool(external_cfg.get('enabled',False))
-                public_url=str(external_cfg.get('public_url','') or '').strip()
-                self.remote_external_key=str(external_cfg.get('access_key','') or '').strip()
                 from wake_on_lan import WakeConfig
                 self.wake_config=WakeConfig.from_dict(remote_cfg.get('wake_on_lan'))
             except Exception:
-                enabled=True; port=8765; allow_internet=False; public_url=''; self.remote_external_key=''
+                enabled=True; port=8765
             if not enabled:
                 return
             self.remote_server=VRemoteServer(
@@ -103,35 +94,12 @@ class UiModeManager(QObject):
                 status_provider=lambda:dict(self.remote_status),
                 wake_callback=self._wake_pc if (self.wake_config and self.wake_config.configured) else None,
                 port=port,
-                allow_internet=allow_internet,
-                external_pair_key=self.remote_external_key,
-                public_url=public_url,
             ).start()
-            self.remote_access_mode='internet' if allow_internet else 'local'
-            self.remote_external_key=self.remote_server.external_pair_key if self.remote_server else self.remote_external_key
-            self.remote_public_url=public_url or (self.remote_server.public_url if self.remote_server else '')
-            if allow_internet and not self.remote_public_url and bool(external_cfg.get('auto_tunnel', False)):
-                try:
-                    from remote_tunnel import CloudflareQuickTunnel
-                    binary=str(external_cfg.get('tunnel_binary','cloudflared') or 'cloudflared')
-                    self.remote_tunnel=CloudflareQuickTunnel(self.remote_server.url, binary=binary).start()
-                except Exception as tunnel_exc:
-                    print(f'V Remote tunnel: {type(tunnel_exc).__name__}: {tunnel_exc}')
             print('')
             print('=== V REMOTE v1.6 ===')
             print(f'Local: {self.remote_server.url}')
             print(f'PIN de pareamento: {self.remote_server.pin}')
-            if allow_internet:
-                print('Modo fora de casa: ATIVO')
-                print(f'Chave externa: {self.remote_external_key}')
-                if self.remote_public_url:
-                    print(f'Link externo: {self.remote_public_url}')
-                elif self.remote_tunnel is not None and not self.remote_tunnel.public_url:
-                    print('Aguardando cloudflared publicar o link externo...')
-                else:
-                    print('Configure um public_url ou ative auto_tunnel para acesso externo.')
-            else:
-                print('Mesma rede Wi-Fi/LAN. Nenhuma porta externa necessária.')
+            print('Mesma rede Wi-Fi/LAN. Nenhuma porta externa necessária.')
             print('=====================')
             print('')
             if self.window is not None:
@@ -139,67 +107,11 @@ class UiModeManager(QObject):
         except Exception as exc:
             print(f'V Remote startup: {type(exc).__name__}: {exc}')
 
-
-    def _start_p2p_remote(self):
-        try:
-            from p2p_host import VP2PHost, ensure_p2p_identity
-            cfg_path=BASE/'config'/'default.json'
-            p2p=ensure_p2p_identity(cfg_path)
-            if not bool(p2p.get('enabled',True)):
-                return
-            signaling_url=str(p2p.get('signaling_url','') or '').strip()
-            if not signaling_url:
-                print('V P2P: signaling_url ainda não configurada. Veja CONFIGURAR_V_P2P.txt')
-                try:
-                    if self.window is not None:
-                        self.window.append_v('V P2P preparado. Falta configurar a URL do servidor de sinalização em config/default.json.')
-                except Exception:
-                    pass
-                return
-            self.p2p_host=VP2PHost(
-                signaling_url=signaling_url,
-                room_id=str(p2p.get('room_id','')),
-                device_token=str(p2p.get('device_token','')),
-                command_callback=lambda text:self.remote_bridge.commandRequested.emit(text),
-                action_callback=lambda name:self.remote_bridge.actionRequested.emit(name),
-                status_provider=lambda:dict(self.remote_status),
-                stun_servers=list(p2p.get('stun_servers') or ['stun:stun.l.google.com:19302']),
-                turn_servers=list(p2p.get('turn_servers') or []),
-                relay_fallback=bool(p2p.get('relay_fallback',True)),
-            ).start()
-            print('')
-            print('=== V P2P REMOTE 1.0 ===')
-            print(f'PIN P2P da sessão: {self.p2p_host.pin}')
-            print(f'Link no iPhone: {self.p2p_host.remote_url}')
-            print('Rota preferida: WebRTC P2P direto; fallback: relay WebSocket.')
-            if not self.p2p_host.aiortc_available:
-                print('AVISO: aiortc não instalado; por enquanto ficará em RELAY. Rode PREPARAR_V_P2P.bat.')
-            print('=========================')
-            print('')
-            if self.window is not None:
-                QTimer.singleShot(1100, self._show_p2p_info)
-        except Exception as exc:
-            print(f'V P2P startup: {type(exc).__name__}: {exc}')
-
-    def _show_p2p_info(self):
-        if self.p2p_host is None or self.window is None:
-            return
-        try:
-            self.window.append_v(
-                f'V P2P ativo. PIN: {self.p2p_host.pin}  •  Link no iPhone: {self.p2p_host.remote_url}'
-            )
-        except Exception:
-            pass
-
     def _show_remote_info(self):
         if self.remote_server is None or self.window is None:
             return
         try:
             msg=f'V Remote ativo: {self.remote_server.url}  •  PIN: {self.remote_server.pin}'
-            if self.remote_access_mode=='internet':
-                if self.remote_public_url:
-                    msg += f'  •  EXTERNO: {self.remote_public_url}'
-                msg += f'  •  CHAVE EXTERNA: {self.remote_external_key}'
             self.window.append_v(msg)
         except Exception:
             pass
@@ -227,14 +139,6 @@ class UiModeManager(QObject):
             disk_percent=round(float(psutil.disk_usage(str(BASE.anchor or 'C:/')).percent),1)
         except Exception:
             cpu_percent=ram_percent=disk_percent=None
-        if self.remote_tunnel is not None:
-            try:
-                if self.remote_tunnel.public_url and self.remote_server is not None and self.remote_server.public_url != self.remote_tunnel.public_url:
-                    self.remote_server.update_public_url(self.remote_tunnel.public_url)
-                if self.remote_tunnel.public_url:
-                    self.remote_public_url=self.remote_tunnel.public_url
-            except Exception:
-                pass
         self.remote_status={
             'state':state,
             'mode':self.mode,
@@ -246,14 +150,7 @@ class UiModeManager(QObject):
             'disk_percent':disk_percent,
             'mobile_pending':0,
             'mobile_notifications':0,
-            'remote_access_mode': self.remote_access_mode,
-            'public_url': self.remote_public_url or (self.remote_server.public_url if self.remote_server else ''),
         }
-        if self.p2p_host is not None:
-            try:
-                self.remote_status['p2p']=self.p2p_host.snapshot()
-            except Exception:
-                pass
         try:
             import mobile_bridge
             self.remote_status['mobile_pending']=len(mobile_bridge.pending_actions(20))
@@ -337,7 +234,7 @@ class UiModeManager(QObject):
                 startup_greeting=startup_greeting,
                 theme=self._load_visual_theme(),
             )
-        w.remote_diagnostics_provider=lambda: {"server": self.remote_server is not None, "url": self.remote_server.url if self.remote_server else '', "p2p": self.p2p_host.snapshot() if self.p2p_host else {}}
+        w.remote_diagnostics_provider=lambda: {"server": self.remote_server is not None, "url": self.remote_server.url if self.remote_server else ''}
         w.mode_switch_callback=self.switch_mode
         w.tts_toggle.setChecked(bool(tts_enabled))
         self.window=w; w.show()
@@ -402,7 +299,7 @@ class UiModeManager(QObject):
 def main():
     from core.crash_diagnostics import enable
     enable()
-    print('=== V 1.9.8 + V REMOTE 1.7 P2P STEAM STYLE ===')
+    print(f'=== {TITULO} ===')
     app=QApplication(sys.argv); app.setApplicationName('V Dual Interface')
     try:
         from spotify_bridge import start_bridge_background
@@ -414,8 +311,6 @@ def main():
     app._v_mode_manager=manager
     if manager.remote_server is not None:
         app.aboutToQuit.connect(manager.remote_server.stop)
-    if manager.p2p_host is not None:
-        app.aboutToQuit.connect(manager.p2p_host.stop)
     return app.exec()
 
 if __name__=='__main__':

@@ -7,6 +7,42 @@ próprio projeto registrou em `logs/`.
 
 ---
 
+## 0. Status da aplicação (28/10/2026 — fim do dia)
+
+Este documento registra a análise original. Abaixo, o que **já foi aplicado** ao código
+depois dela, e o que continua em aberto.
+
+**Aplicado**
+
+| Tema | O que mudou |
+|---|---|
+| Remoto fora de casa | `p2p_host.py`, `p2p_server/`, `remote_tunnel.py`, `configurar_p2p.py` e os `.bat`/docs de P2P e acesso externo foram **removidos**. `remote_server.py` e `main_dual_ui.py` ficaram somente LAN (PIN local, sem chave externa/public_url). |
+| Segurança de segredos | `secure_store.py` (DPAPI) centraliza proteção; `spotify_api.py`, `brain/gemini_auth.py`, `voice/eleven_auth.py`, `spotify_bridge.py` e `integrations/gmail_reader.py` usam DPAPI e **não** gravam mais em texto puro. Os 4 segredos que já estavam em claro no `config/` foram migrados e a releitura foi verificada. |
+| Bridge Spotify | CORS restrito (sem `*`), token por header `X-Bridge-Token` (query só no handshake), lease anti-roubo com `409 command_in_progress`, aviso de extensão desatualizada, `--rotate` para rotacionar token, ACL restrita no JS instalado. |
+| Falhas silenciosas | `vlog.py` (log rotativo em `logs/v_assistant.log`); `except Exception: pass` caiu de 13 para 1 nos 4 arquivos de voz/engine/briefing (o restante é o callback de captura, de propósito). `last_tts_error` é limpo no sucesso, Piper registra a causa, fila TTS cheia loga, briefing tem timeout de 9 s e as threads de notificação têm `join(2)`. |
+| Código morto | Removidas ~185 linhas de `core/functional_engine.py` (`_handle_with_ai` e cadeia), `spotify_controller.py` (510), `ui/amber_neural.py`, `ui/instagram_orb.py`, `ui/reference_face_data.py` e a constante `STYLE` do `desktop_shell`. |
+| Versão | `versao.py` é a fonte única (1.9.8 / `V198-LAN-20261028`), usada por `main.py`, `ui/main_window.py`, `main_dual_ui.py`, `ui/amber_window.py` e pelos `.bat` de inicialização. `VERSAO.txt` atualizado. |
+| Config e ambiente | `config/default.example.json` agora é gerado do real (254 chaves, 2 valores anonimizados) por `tools/gerar_config_exemplo.py`; `requirements.lock.txt` regenerado por `pip freeze` (132 pacotes); `.bat` de inicialização usam `.venv`. |
+| Organização | Raiz de ~230 para 55 arquivos: docs em `docs/{guias,historico,changelog,preview}`, scripts em `tools/`, migradores antigos em `docs/historico/migracoes/`. `README.md` reescrito. |
+
+**Validação executada**
+
+- `compileall` do código próprio: OK.
+- Suíte completa: **388 testes, 1 falha** — `tests/test_recognition_quality.py::test_long_sentence_preserves_half_second_pause`, que **falha igual no commit baseline** (comparado em worktree separado). Não é regressão.
+- Validação de segurança: roundtrip DPAPI, migração de token legado, falha explícita sem DPAPI, allowlist de CORS e ACL — todos OK.
+- `tools/diagnostico_startup.py` rodando de `tools/`: OK.
+- Migração dos 4 segredos em texto puro: OK, releitura verificada.
+
+**Continua em aberto (por prioridade)**
+
+1. `test_recognition_quality` falha por timing — investigar separadamente.
+2. `_tts_loop` ainda depende de `pythoncom` inicializar; se falhar, a thread morre sem fala.
+3. Câmera não é desligada explicitamente na troca de modo (F6) — só no fechamento.
+4. Backdrop orbital segue acima do orçamento de 16,7 ms no benchmark do projeto.
+5. `core/connections.py` só valida `access_mode == 'local'` — coerente agora, mas o teste de conexão continua raso.
+
+---
+
 ## 1. Retrato do projeto
 
 Aplicativo desktop Windows em Python/PySide6: assistente de voz em português ("V") com face animada,

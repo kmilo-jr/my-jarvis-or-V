@@ -10,16 +10,27 @@ from pathlib import Path
 import re
 import ssl
 
+from secure_store import SecureStoreError, protect_bytes, unprotect_bytes
+from vlog import get_logger
+
 ACCOUNT_PATH = Path(os.environ.get('LOCALAPPDATA', str(Path.home()))) / 'VAssistant' / 'gmail.json'
+
+log = get_logger(__name__)
 
 
 def save_account(address, password, path=ACCOUNT_PATH):
-    import win32crypt
     address = address.strip(); password = password.replace(' ', '').strip()
     if not re.fullmatch(r'[^\s@]+@[^\s@]+\.[^\s@]+', address) or not re.fullmatch(r'[a-zA-Z]{16}', password):
         raise ValueError('Informe seu e-mail e uma senha de app do Google com 16 letras.')
     payload = json.dumps({'address': address, 'password': password}).encode('utf-8')
-    encrypted = win32crypt.CryptProtectData(payload, 'V Gmail', None, None, None, 0)
+    try:
+        encrypted = protect_bytes(payload, 'V Gmail')
+    except SecureStoreError as exc:
+        log.warning('nao foi possivel proteger a conta do Gmail com DPAPI: %s', type(exc).__name__)
+        raise RuntimeError(
+            'Nao foi possivel salvar a senha do Gmail com seguranca: o DPAPI do Windows '
+            'nao esta disponivel. Nada foi gravado. Instale/reinstale o pywin32 no .venv.'
+        ) from exc
     path = Path(path); path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix('.tmp')
     temp.write_text(base64.b64encode(encrypted).decode('ascii'), encoding='ascii'); temp.replace(path)
@@ -27,10 +38,13 @@ def save_account(address, password, path=ACCOUNT_PATH):
 
 def load_account(path=ACCOUNT_PATH):
     try:
-        import win32crypt
         encrypted = base64.b64decode(Path(path).read_text(encoding='ascii'))
-        return json.loads(win32crypt.CryptUnprotectData(encrypted, None, None, None, 0)[1])
-    except Exception:
+        return json.loads(unprotect_bytes(encrypted, 'V Gmail'))
+    except SecureStoreError as exc:
+        log.warning('nao foi possivel desproteger a conta do Gmail: %s', type(exc).__name__)
+        return None
+    except Exception as exc:
+        log.warning('falha ao ler a conta do Gmail: %s', type(exc).__name__)
         return None
 
 

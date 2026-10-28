@@ -14,6 +14,9 @@ from pathlib import Path
 from typing import Callable
 
 from .endpoint import AdaptiveEndpointDetector
+from vlog import get_logger
+
+log = get_logger(__name__)
 
 
 class VoiceEngine:
@@ -180,8 +183,8 @@ class VoiceEngine:
             host_name = ""
             try:
                 host_name = hostapis[int(dev.get("hostapi", 0))].get("name", "")
-            except Exception:
-                pass
+            except Exception as exc:
+                log.warning("nome do host de áudio indisponível (%s): %s", idx, type(exc).__name__)
             name = str(dev.get("name", f"Microfone {idx}"))
             if host_name:
                 name = f"{name} · {host_name}"
@@ -351,7 +354,8 @@ class VoiceEngine:
             return
         try:
             self._ambient_profiles.pop(self._profile_key(device_index), None)
-        except Exception:
+        except Exception as exc:
+            log.warning("falha ao invalidar perfil de áudio: %s", type(exc).__name__)
             self._ambient_profiles.clear()
 
     def validate_input_device(self, device_index=None):
@@ -704,7 +708,8 @@ class VoiceEngine:
         for wrong, right in hints.items():
             try:
                 out = re.sub(rf"(?i)(?<!\w){re.escape(str(wrong))}(?!\w)", str(right), out)
-            except Exception:
+            except Exception as exc:
+                log.warning("termo de substituição inválido ignorado: %s", type(exc).__name__)
                 continue
         return out
 
@@ -744,6 +749,7 @@ class VoiceEngine:
             try:
                 self._tts_queue.put_nowait(item)
             except queue.Full:
+                log.warning("fila TTS cheia; descartando a fala mais antiga para não travar")
                 try:
                     self._discard_speech_item(self._tts_queue.get_nowait(), 'dropped')
                 except queue.Empty:
@@ -874,10 +880,11 @@ class VoiceEngine:
                 try:
                     self.tts_status = "Preparando voz local"
                     if self._load_piper_voice() is None:
-                        self.last_tts_error = "Não foi possível carregar a voz local Piper"
+                        self.last_tts_error = self.last_tts_error or "Não foi possível carregar a voz local Piper"
                         self.tts_status = "Falha ao carregar voz local"
                     else:
                         self.tts_status = "Voz pronta"
+                        self.last_tts_error = ""
                 finally:
                     self._piper_warmup_active.clear()
             threading.Thread(target=prepare_piper, daemon=True, name="V-Piper-Warmup").start()
@@ -892,6 +899,7 @@ class VoiceEngine:
                     self.tts_status = "Preparando V Alt"
                     backend.prepare(self._resolve_qwen_reference())
                     self.tts_status = "Voz pronta"
+                    self.last_tts_error = ""
                 except Exception as exc:
                     self.last_tts_error = str(exc)
                     self.tts_status = "Falha na voz: " + str(exc)
@@ -913,7 +921,8 @@ class VoiceEngine:
                 self.tts_status = "Carregando voz local"
                 engine = self._load_xtts()
                 if engine is not None:
-                    self._get_xtts_voice(engine, self._resolve_xtts_reference())
+                    if self._get_xtts_voice(engine, self._resolve_xtts_reference()) is not None:
+                        self.last_tts_error = ""
             finally:
                 self._xtts_warmup_active.clear()
                 self.tts_status = "Voz pronta" if self._xtts is not None else "Falha ao carregar voz: " + self.last_tts_error
@@ -948,6 +957,7 @@ class VoiceEngine:
             return True
         except Exception as exc:
             self.last_tts_error = type(exc).__name__
+            log.warning("falha na reprodução MCI: %s", type(exc).__name__)
             return False
         finally:
             mci(f'close {alias}', None, 0, None)
@@ -1023,10 +1033,10 @@ class VoiceEngine:
 
                         xtts_module.load_audio = _v_load_audio
                         xtts_module._v_soundfile_loader = True
-                except Exception:
+                except Exception as exc:
                     # Let the normal Coqui loader handle environments where
                     # soundfile is unavailable and torchcodec is functional.
-                    pass
+                    log.warning("loader soundfile do XTTS indisponível: %s", type(exc).__name__)
 
                 # Coqui's API downloads the model on first use and keeps it in
                 # memory.  A CPU-only environment remains fully supported.
@@ -1052,6 +1062,7 @@ class VoiceEngine:
                 self._xtts_loaded_model = None
                 self._xtts_loaded_reference = None
                 self.last_tts_error = type(exc).__name__
+                log.warning("falha ao carregar XTTS: %s", type(exc).__name__)
                 return None
 
     def _synthesize_xtts_file(self, text: str) -> str | None:
@@ -1132,6 +1143,7 @@ class VoiceEngine:
             return path
         except Exception as exc:
             self.last_tts_error = type(exc).__name__
+            log.warning("falha ao sintetizar trecho XTTS: %s", type(exc).__name__)
             try:
                 os.remove(path)
             except OSError:
@@ -1161,6 +1173,7 @@ class VoiceEngine:
             return voice
         except Exception as exc:
             self.last_tts_error = type(exc).__name__
+            log.warning("falha ao preparar timbre XTTS: %s", type(exc).__name__)
             return None
 
     def _polish_xtts_file(self, path: str) -> None:
@@ -1201,9 +1214,10 @@ class VoiceEngine:
             if peak > 0.00001:
                 audio = np.clip(audio * (target_peak / peak), -0.98, 0.98).astype(np.float32)
             sf.write(path, audio, int(sample_rate), subtype="PCM_16")
-        except Exception:
+        except Exception as exc:
             # The polish is optional; a codec/filter problem must not silence
             # a successful XTTS synthesis.
+            log.warning("polimento de áudio XTTS ignorado: %s", type(exc).__name__)
             return
 
     def _get_qwen(self):
@@ -1372,6 +1386,7 @@ class VoiceEngine:
             return output
         except Exception as exc:
             self.last_tts_error = type(exc).__name__ + ": " + str(exc)
+            log.warning("falha ao montar resposta XTTS: %s", type(exc).__name__)
             return None
         finally:
             if not complete:
@@ -1453,6 +1468,7 @@ class VoiceEngine:
             return result
         except Exception as exc:
             self.last_tts_error = type(exc).__name__
+            log.warning("falha no streaming XTTS: %s", type(exc).__name__)
             return None
 
     def _play_xtts_audio(self, chunks, sample_rate, cancel, started, metrics, reserve=None) -> bool | None:
@@ -1530,6 +1546,7 @@ class VoiceEngine:
             except Exception as exc:
                 generation_error = type(exc).__name__ + ": " + str(exc)
                 self.last_tts_error = generation_error
+                log.warning("falha ao gerar áudio para reprodução: %s", type(exc).__name__)
             generated.set()
             if not output_started and not prepared.empty() and not cancel.is_set():
                 output.start()
@@ -1543,22 +1560,23 @@ class VoiceEngine:
             return True if spoken or cancel.is_set() else None
         except Exception as exc:
             self.last_tts_error = type(exc).__name__
+            log.warning("falha na reprodução de áudio XTTS: %s", type(exc).__name__)
             # Do not replay a sentence whose first words were already heard.
             return True if spoken or cancel.is_set() else None
         finally:
             if output is not None:
                 try:
                     output.abort()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning("falha ao abortar saída de áudio: %s", type(exc).__name__)
                 try:
                     output.close()
-                except Exception:
-                    pass
+                except Exception as exc:
+                    log.warning("falha ao fechar saída de áudio: %s", type(exc).__name__)
             try:
                 chunks.close()
-            except Exception:
-                pass
+            except Exception as exc:
+                log.warning("falha ao fechar gerador de áudio: %s", type(exc).__name__)
             metrics["buffer_gap_ms"] = round(metrics["buffer_gap_ms"], 1)
 
     def _resolve_piper_model(self) -> Path:
@@ -1573,6 +1591,8 @@ class VoiceEngine:
         """Carrega o modelo Piper uma única vez e o mantém em memória."""
         model_path = self._resolve_piper_model()
         if not model_path.exists():
+            self.last_tts_error = f"Modelo Piper não encontrado: {model_path}"
+            log.warning("modelo Piper não encontrado em %s", model_path)
             return None
         with self._piper_lock:
             if self._piper_voice is not None and self._piper_loaded_model == str(model_path):
@@ -1583,7 +1603,9 @@ class VoiceEngine:
                 self._piper_voice = PiperVoice.load(str(model_path), use_cuda=use_cuda)
                 self._piper_loaded_model = str(model_path)
                 return self._piper_voice
-            except Exception:
+            except Exception as exc:
+                self.last_tts_error = f"Falha ao carregar voz local Piper ({type(exc).__name__})"
+                log.warning("falha ao carregar voz Piper (%s): %s", type(exc).__name__, exc)
                 self._piper_voice = None
                 self._piper_loaded_model = None
                 return None
@@ -1605,7 +1627,8 @@ class VoiceEngine:
                     volume=float(self.config.get("tts_piper_volume", 1.0)),
                     normalize_audio=True,
                 )
-            except Exception:
+            except Exception as exc:
+                log.warning("configuração de síntese Piper indisponível, usando padrão: %s", type(exc).__name__)
                 syn = None
             with wave.open(path, "wb") as wav_file:
                 if syn is None:
@@ -1615,7 +1638,9 @@ class VoiceEngine:
             if os.name == "nt":
                 return self._play_mp3_windows(path)
             return False
-        except Exception:
+        except Exception as exc:
+            self.last_tts_error = f"Falha na síntese Piper ({type(exc).__name__})"
+            log.warning("falha na síntese/reprodução Piper (%s): %s", type(exc).__name__, exc)
             return False
         finally:
             try:
@@ -1626,7 +1651,9 @@ class VoiceEngine:
     def _synthesize_edge_file(self, text: str, rate: str, pitch: str, volume: str) -> str | None:
         try:
             import edge_tts
-        except Exception:
+        except Exception as exc:
+            self.last_tts_error = f"Edge TTS indisponível ({type(exc).__name__})"
+            log.warning("edge_tts indisponível: %s", type(exc).__name__)
             return None
         fd, path = tempfile.mkstemp(prefix="v_edge_tts_", suffix=".mp3")
         os.close(fd)
@@ -1640,7 +1667,9 @@ class VoiceEngine:
             )
             communicate.save_sync(path)
             return path
-        except Exception:
+        except Exception as exc:
+            self.last_tts_error = f"Falha na síntese Edge TTS ({type(exc).__name__})"
+            log.warning("falha na síntese Edge TTS (%s): %s", type(exc).__name__, exc)
             try:
                 os.remove(path)
             except OSError:
@@ -1685,6 +1714,7 @@ class VoiceEngine:
                 self._eleven_session.headers.update({"User-Agent":"V-Assistant/1.4.1"})
         except Exception as exc:
             self.last_tts_error = 'Falha ao preparar ElevenLabs: ' + type(exc).__name__
+            log.warning("falha ao preparar cliente ElevenLabs: %s", type(exc).__name__)
             return None
         key = load_key(self.config)
         voice_id = str(self.config.get("tts_eleven_voice_id", "")).strip()
@@ -1730,6 +1760,7 @@ class VoiceEngine:
                 except (ValueError, AttributeError):
                     pass
                 self.last_tts_error = f"ElevenLabs HTTP {response.status_code}" + (f" ({status})" if status else "")
+                log.warning("ElevenLabs HTTP %s%s", response.status_code, f" ({status})" if status else "")
                 if status == 'quota_exceeded':
                     self.last_tts_error = ('ElevenLabs: cota de voz esgotada (quota_exceeded). '
                                            'Verifique os créditos da conta ou selecione outra voz em Voz e tarefas.')
@@ -1749,6 +1780,7 @@ class VoiceEngine:
             return path
         except Exception as exc:
             self.last_tts_error = 'Falha na conexão ou geração ElevenLabs: ' + type(exc).__name__
+            log.warning("falha de conexão/geração ElevenLabs: %s", type(exc).__name__)
             try:
                 os.remove(path)
             except OSError:
@@ -1795,6 +1827,7 @@ class VoiceEngine:
                         return
             except Exception as exc:
                 self.last_tts_error = type(exc).__name__
+                log.warning("falha ao preparar áudio TTS em segundo plano: %s", type(exc).__name__)
             finally:
                 deliver(None)
 
@@ -1863,6 +1896,7 @@ class VoiceEngine:
         except Exception as exc:
             # Optional DSP failure must not silence the user's selected voice.
             self.last_tts_metrics['robot_effect_error'] = str(exc)
+            log.warning("efeito de voz robótica ignorado: %s", type(exc).__name__)
             return path
         Path(path).unlink(missing_ok=True)
         return result
@@ -1893,6 +1927,7 @@ class VoiceEngine:
                     continue
                 if receipt is not None:
                     receipt.update(state='speaking')
+                spoken = False
                 try:
                     self._tts_epoch += 1
                     speech_started = time.perf_counter()
@@ -1902,7 +1937,6 @@ class VoiceEngine:
                     self.last_tts_error = ""
                     profile = self._speech_profile(receipt)
                     self._active_tts_profile = profile
-                    spoken = False
 
                     # Voz local personalizada: XTTS-v2 usa a amostra do V e
                     # mantém Edge/Piper como fallback de disponibilidade.
@@ -1921,6 +1955,7 @@ class VoiceEngine:
                     elif profile in {"xtts_local", "xtts", "v_prime", "v_prime_local", "local_clone"}:
                         spoken = self._speak_xtts(text)
                         if (not spoken) and not self._active_cancel.is_set() and bool(self.config.get("tts_xtts_fallback_edge", True)):
+                            log.warning("voz XTTS indisponível; usando Edge TTS como fallback: %s", self.last_tts_error or "motivo desconhecido")
                             spoken = self._speak_edge_tts(text)
                         if not spoken and not self._active_cancel.is_set():
                             spoken = self._speak_piper(text)
@@ -1933,6 +1968,7 @@ class VoiceEngine:
                                 self.last_tts_error = "Não foi possível gerar a voz do ElevenLabs"
                             continue
                         if (not spoken) and not self._active_cancel.is_set() and bool(self.config.get("tts_eleven_fallback_edge", True)):
+                            log.warning("ElevenLabs indisponível; usando Edge TTS como fallback: %s", self.last_tts_error or "motivo desconhecido")
                             spoken = self._speak_edge_tts(text)
                         if not spoken and not self._active_cancel.is_set():
                             spoken = self._speak_piper(text)
@@ -1941,6 +1977,8 @@ class VoiceEngine:
                     elif profile in {"piper", "piper_faber", "faber", "offline"}:
                         spoken = self._speak_piper(text)
                         if (not spoken) and not self._active_cancel.is_set() and bool(self.config.get("tts_piper_fallback_edge", True)):
+                            # Perfil "offline" cai para a voz online; isso fica explícito no log.
+                            log.warning("voz local Piper indisponível; usando Edge TTS (online) como fallback: %s", self.last_tts_error or "motivo desconhecido")
                             spoken = self._speak_edge_tts(text)
 
                     # Perfil natural recomendado: Edge-TTS -> Piper local -> SAPI5.
@@ -1951,6 +1989,7 @@ class VoiceEngine:
 
                     if not spoken and not self._active_cancel.is_set():
                         # Ultimo fallback local do Windows.
+                        log.warning("voz selecionada indisponível; usando SAPI do Windows como último recurso: %s", self.last_tts_error or "motivo desconhecido")
                         if voice is None:
                             voice = win32com.client.Dispatch("SAPI.SpVoice")
                             voice.Volume = int(self.config.get("tts_fallback_volume", 96))
@@ -1958,6 +1997,7 @@ class VoiceEngine:
                         voice.Rate = int(self.config.get("tts_fallback_rate", 2))
                         self.tts_status = "Falando"
                         voice.Speak(text, 1)
+                        spoken = True
                         self.last_tts_metrics = {"engine": "windows_sapi", "voice": voice.Voice.GetDescription()}
                         while not voice.WaitUntilDone(30):
                             if self._active_cancel.is_set():
@@ -1966,8 +2006,14 @@ class VoiceEngine:
                 except Exception as exc:
                     self.last_tts_error = type(exc).__name__ + ": " + str(exc)
                     self.tts_status = "Falha na fala: " + self.last_tts_error
+                    log.warning("falha ao falar (motor ativo): %s", type(exc).__name__)
                 finally:
                     self._tts_speaking.clear()
+                    if spoken and not self._active_cancel.is_set() and self.last_tts_error:
+                        # Áudio entregue (inclusive por fallback): o erro de um
+                        # motor anterior não pode fazer a UI acusar falha.
+                        log.info("TTS entregue após fallback; limpando erro anterior: %s", self.last_tts_error)
+                        self.last_tts_error = ""
                     self.tts_status = ("Falha na voz selecionada: " + self.last_tts_error
                                        if self.last_tts_error else "Voz pronta")
                     self._end_visual_speech()
@@ -1981,6 +2027,7 @@ class VoiceEngine:
         except Exception as exc:
             self.last_tts_error = type(exc).__name__ + ": " + str(exc)
             self.tts_status = "Falha na saída de voz: " + self.last_tts_error
+            log.warning("falha na thread de saída de voz: %s", type(exc).__name__)
             if receipt is not None and receipt['state'] in ('queued', 'speaking'):
                 receipt.update(state='failed', error=self.last_tts_error)
             while True:
@@ -2006,8 +2053,8 @@ class VoiceEngine:
             temp = path.with_suffix('.tmp')
             temp.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
             temp.replace(path)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("não consegui gravar diagnóstico do TTS: %s", type(exc).__name__)
 
     def _select_tts_voice(self, voice):
         hints = [str(x).lower() for x in self.config.get(
@@ -2039,8 +2086,8 @@ class VoiceEngine:
             if scored:
                 scored.sort(key=lambda x: x[0], reverse=True)
                 voice.Voice = scored[0][1]
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("não consegui selecionar voz SAPI: %s", type(exc).__name__)
 
     def shutdown(self):
         self.stop_speaking()
@@ -2048,5 +2095,5 @@ class VoiceEngine:
             self._qwen.close()
         try:
             self._tts_queue.put_nowait(None)
-        except Exception:
-            pass
+        except Exception as exc:
+            log.warning("não consegui encerrar a fila TTS: %s", type(exc).__name__)

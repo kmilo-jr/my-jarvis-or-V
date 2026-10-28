@@ -1,4 +1,6 @@
 from __future__ import annotations
+
+import versao
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QFrame, QTextEdit,
@@ -260,7 +262,7 @@ class AmberExperimentWindow(MainWindow):
         self.chat.ensureCursorVisible()
 
     def append_v(self, text):
-        if str(text).startswith('V Prototype 1.8.3 //'):
+        if str(text).startswith(f'{versao.TITULO} //'):
             text = 'Interface pronta. Fale comigo ou envie um pedido.'
         self.chat.append(f"<p style='color:#efd7cc; margin-top:12px'><b>V</b><br>{self._esc(text)}</p>")
         self.chat.ensureCursorVisible()

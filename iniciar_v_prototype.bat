@@ -1,20 +1,28 @@
 @echo off
 setlocal
 cd /d "%~dp0"
-title V 1.6 NEURAL INTERFACE
+title V 1.9.8
 cls
 echo ==========================================================
-echo   V PROTOTYPE 1.6 - NEURAL INTERFACE + PROCESS FX
- echo   BUILD: V160-NEURAL-FX-20260916
- echo   PASTA: %CD%
+echo   V PROTOTYPE 1.9.8 - NEURAL INTERFACE + PROCESS FX
+echo   PASTA: %CD%
 echo ==========================================================
-if not exist ".venv\Scripts\python.exe" (
-  echo.
-  echo Ambiente .venv nao encontrado nesta pasta.
-  echo Execute configurar_prototype.bat primeiro.
-  pause
-  exit /b 1
+echo.
+set "VPY="
+if exist ".venv\Scripts\python.exe" set "VPY=%CD%\.venv\Scripts\python.exe"
+if not defined VPY (
+  where python >nul 2>nul
+  if errorlevel 1 (
+    echo Ambiente .venv nao encontrado nesta pasta e python nao esta no PATH.
+    echo Execute configurar_prototype.bat primeiro.
+    pause
+    exit /b 1
+  )
+  echo Aviso: .venv nao encontrado, usando o python do PATH.
+  set "VPY=python"
 )
-".venv\Scripts\python.exe" main.py
+echo Interpretador: %VPY%
+echo.
+"%VPY%" main.py
 if errorlevel 1 pause
 endlocal

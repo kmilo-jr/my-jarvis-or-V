@@ -357,7 +357,7 @@ class BrainService:
                         json=payload, timeout=(3.0, timeout),
                     )
                     if resp.status_code >= 400:
-                        errors.append(f"{current_model}: HTTP {resp.status_code}: {resp.text[:700]}")
+                        errors.append(f"{current_model}: HTTP {resp.status_code}")
                         continue
                     obj = resp.json() if resp.content else {}
                 else:
@@ -526,7 +526,7 @@ class BrainService:
                         json=payload, timeout=(3.0, current_timeout),
                     )
                     if resp.status_code >= 400:
-                        errors.append(f"{current_model}: HTTP {resp.status_code}: {resp.text[:800]}")
+                        errors.append(f"{current_model}: HTTP {resp.status_code}")
                         if resp.status_code in (400, 401, 403):
                             break
                         continue
@@ -774,7 +774,7 @@ class BrainService:
                 # Evita mojibake em respostas SSE sem charset explícito.
                 resp.encoding="utf-8"
                 if resp.status_code >= 400:
-                    errors.append(f"{current_model}: HTTP {resp.status_code}: {resp.text[:600]}")
+                    errors.append(f"{current_model}: HTTP {resp.status_code}")
                     if resp.status_code in (400,401,403):
                         break
                     continue

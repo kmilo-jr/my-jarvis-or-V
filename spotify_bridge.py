@@ -1,3 +1,19 @@
+"""Bridge HTTP local (127.0.0.1) entre o V e a extensao Spicetify do Spotify.
+
+Seguranca:
+- O token do bridge fica em ``config/spotify_bridge_token.dat`` protegido com
+  DPAPI (secure_store). O antigo ``.txt`` em texto puro e lido apenas para
+  migracao e removido assim que a gravacao protegida funciona. Sem DPAPI o
+  token NAO e gravado em claro (vale apenas para a execucao atual).
+- A extensao instalada (``%APPDATA%\\spicetify\\Extensions\\vSpotifyBridge.js``)
+  NECESSARIAMENTE contem o token em texto: o Spicetify nao tem um cofre de
+  segredos acessivel ao JS. Por isso o configurador restringe as permissoes
+  do arquivo e deve ser rodado de novo para ROTACIONAR o token se o JS vazar.
+- Token de requisicao vem no header ``X-Bridge-Token`` (query so no handshake
+  /health e /heartbeat, por compatibilidade com extensao antiga). CORS e
+  restrito as origens da extensao/Spotify.
+"""
+
 from __future__ import annotations
 
 import json
@@ -12,21 +28,58 @@ import urllib.error
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from urllib.parse import parse_qs, urlparse
+
+from secure_store import SecureStoreError, protect_text, unprotect_text
+from vlog import get_logger
 
 BASE = Path(__file__).resolve().parent
 CONFIG_PATH = BASE / "config" / "default.json"
-TOKEN_FILE = BASE / "config" / "spotify_bridge_token.txt"
+# Token protegido por DPAPI (formato atual). O .txt legado e so para migracao.
+TOKEN_FILE = BASE / "config" / "spotify_bridge_token.dat"
+LEGACY_TOKEN_FILE = BASE / "config" / "spotify_bridge_token.txt"
+TOKEN_PROTECT = "dpapi"
+TOKEN_SCHEME = "windows-dpapi-user"
 LOG_DIR = BASE / "logs"
 LOG_FILE = LOG_DIR / "spotify_bridge.log"
 DEFAULT_HOST = "127.0.0.1"
 DEFAULT_PORT = 8766
 
+# Token do bridge: sempre por header. A query string so e aceita no handshake
+# (/health e /heartbeat), porque era assim que a extensao antiga se anunciava;
+# nunca em /next, /command ou /result (evita token em log/historico/Referer).
+TOKEN_HEADER = "X-Bridge-Token"
+CLIENT_HEADER = "X-Bridge-Client"
+HANDSHAKE_PATHS = frozenset({"/health", "/heartbeat"})
+
+# Origens permitidas no CORS: a extensao (chrome-extension://) e a origem do
+# proprio Spotify Desktop, onde a extensao Spicetify executa o fetch.
+ORIGIN_PREFIXES = ("chrome-extension://", "moz-extension://", "safari-web-extension://")
+SPOTIFY_ORIGIN_SUFFIXES = ("spotify.com",)
+
+# Tempo maximo que um comando entregue a um cliente fica "em andamento".
+COMMAND_LEASE_SECONDS = 10.0
+
 _commands: queue.Queue = queue.Queue()
 _waiters: dict[str, dict] = {}
 _waiters_lock = threading.Lock()
-_last_seen = {"extension": 0.0, "last_status": None}
+_last_seen = {"extension": 0.0, "last_status": None, "legacy_query": 0.0}
 _server_thread: threading.Thread | None = None
 _server = None
+_inflight: dict | None = None
+_inflight_lock = threading.Lock()
+
+log = get_logger(__name__)
+
+
+def _log(event: str, **data):
+    try:
+        LOG_DIR.mkdir(parents=True, exist_ok=True)
+        rec = {"ts": time.time(), "event": event, **data}
+        with LOG_FILE.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
 
 
 def _cfg():
@@ -42,14 +95,58 @@ def _host_port():
     return str(cfg.get("host") or DEFAULT_HOST), int(cfg.get("port") or DEFAULT_PORT)
 
 
-def _log(event: str, **data):
-    try:
-        LOG_DIR.mkdir(parents=True, exist_ok=True)
-        rec = {"ts": time.time(), "event": event, **data}
-        with LOG_FILE.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+def _allowed_origin(origin: str) -> str:
+    origin = str(origin or "").strip().rstrip("/")
+    if not origin:
+        return ""
+    low = origin.lower()
+    if any(low.startswith(prefix) for prefix in ORIGIN_PREFIXES):
+        return origin
+    if low.startswith("https://"):
+        try:
+            host = (urlparse(low).hostname or "").strip()
+        except ValueError:
+            host = ""
+        if host and any(host == s or host.endswith("." + s) for s in SPOTIFY_ORIGIN_SUFFIXES):
+            return origin
+    return ""
+
+
+def _client_key(handler) -> str:
+    """Identidade best-effort do cliente HTTP (extensao/aba/processo)."""
+    for header in (CLIENT_HEADER, "Origin"):
+        value = str(handler.headers.get(header) or "").strip()
+        if value:
+            return value[:200]
+    return "local"
+
+
+def _inflight_snapshot() -> dict | None:
+    global _inflight
+    with _inflight_lock:
+        current = _inflight
+        if current and float(current.get("deadline", 0)) <= time.time():
+            _inflight = None
+            current = None
+        return dict(current) if current else None
+
+
+def _claim_inflight(cmd: dict, client: str) -> None:
+    global _inflight
+    with _inflight_lock:
+        _inflight = {
+            "id": str(cmd.get("id", "")),
+            "client": client,
+            "action": str(cmd.get("action", "")),
+            "deadline": time.time() + COMMAND_LEASE_SECONDS,
+        }
+
+
+def _release_inflight(command_id: str | None = None) -> None:
+    global _inflight
+    with _inflight_lock:
+        if _inflight and (command_id is None or _inflight.get("id") == command_id):
+            _inflight = None
 
 
 def _installed_extension_path() -> Path | None:
@@ -71,31 +168,200 @@ def _token_from_installed_extension() -> str | None:
         return None
 
 
-def ensure_token() -> str:
+def _read_secure_token() -> str | None:
+    """Le o token do bridge protegido por DPAPI (formato atual do .dat)."""
+    try:
+        if not TOKEN_FILE.exists():
+            return None
+        payload = json.loads(TOKEN_FILE.read_text(encoding="utf-8"))
+    except Exception as exc:
+        log.warning("bridge: nao foi possivel ler o token protegido: %s", type(exc).__name__)
+        return None
+    if not isinstance(payload, dict):
+        log.warning("bridge: token protegido em formato inesperado; sera ignorado")
+        return None
+    if str(payload.get("protect") or "").strip().lower() != TOKEN_PROTECT:
+        token = str(payload.get("token") or "").strip()
+        if token:
+            log.warning("bridge: token em formato legado dentro do .dat; sera migrado")
+            return token
+        return None
+    try:
+        token = unprotect_text(str(payload.get("data") or ""), "V Spotify Bridge Token").strip()
+    except SecureStoreError as exc:
+        log.warning("bridge: falha ao desproteger o token do bridge: %s", type(exc).__name__)
+        return None
+    return token or None
+
+
+def _read_legacy_token() -> str | None:
+    """Le o token legado em texto puro (config/spotify_bridge_token.txt)."""
+    try:
+        if not LEGACY_TOKEN_FILE.exists():
+            return None
+        token = LEGACY_TOKEN_FILE.read_text(encoding="utf-8").strip()
+        return token or None
+    except Exception as exc:
+        log.warning("bridge: falha ao ler o token legado .txt: %s", type(exc).__name__)
+        return None
+
+
+def _write_secure_token(token: str) -> None:
+    """Grava o token protegido por DPAPI de forma atomica (levanta SecureStoreError)."""
+    data = protect_text(token, "V Spotify Bridge Token")
+    payload = {
+        "version": 1,
+        "protect": TOKEN_PROTECT,
+        "scheme": TOKEN_SCHEME,
+        "data": data,
+    }
     TOKEN_FILE.parent.mkdir(parents=True, exist_ok=True)
-    if TOKEN_FILE.exists():
-        tok = TOKEN_FILE.read_text(encoding="utf-8").strip()
-        if tok:
-            return tok
+    tmp = TOKEN_FILE.with_suffix(TOKEN_FILE.suffix + ".tmp")
+    try:
+        tmp.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+        tmp.replace(TOKEN_FILE)
+    finally:
+        try:
+            if tmp.exists():
+                tmp.unlink()
+        except OSError:
+            pass
+
+
+def _remove_legacy_token() -> None:
+    """Remove o .txt legado depois de migrar o token para DPAPI."""
+    try:
+        if LEGACY_TOKEN_FILE.exists():
+            LEGACY_TOKEN_FILE.unlink()
+            log.info("bridge: token legado em texto puro removido apos migrar para DPAPI")
+            _log("legacy_token_migrated")
+    except OSError as exc:
+        log.warning("bridge: nao foi possivel remover o token legado .txt: %s", type(exc).__name__)
+
+
+def _persist_token(token: str) -> bool:
+    """Tenta gravar o token protegido; nunca grava em texto puro."""
+    try:
+        _write_secure_token(token)
+        return True
+    except SecureStoreError as exc:
+        log.warning(
+            "bridge: nao foi possivel proteger o token do bridge com DPAPI: %s",
+            type(exc).__name__,
+        )
+        return False
+    except Exception as exc:  # disco cheio/sem permissao: nao pode gravar em claro
+        log.warning("bridge: falha ao gravar token protegido: %s", type(exc).__name__)
+        return False
+
+
+def save_token(token: str) -> str:
+    """Salva/rotaciona o token do bridge com DPAPI (usado pelo configurador).
+
+    Levanta RuntimeError com mensagem clara se o DPAPI nao estiver disponivel:
+    o token NUNCA e gravado em texto puro.
+    """
+    token = str(token or "").strip()
+    if not token:
+        raise ValueError("Token do bridge vazio.")
+    try:
+        _write_secure_token(token)
+    except SecureStoreError as exc:
+        log.warning("bridge: falha ao salvar token do bridge com DPAPI: %s", type(exc).__name__)
+        raise RuntimeError(
+            "Nao foi possivel salvar o token do Spotify Bridge com seguranca: o DPAPI "
+            "do Windows nao esta disponivel. O token NAO foi gravado em texto puro. "
+            "Instale/reinstale o pywin32 no .venv e tente novamente."
+        ) from exc
+    _remove_legacy_token()
+    return token
+
+
+def ensure_token() -> str:
+    """Devolve o token do bridge, migrando formatos antigos quando possivel.
+
+    Ordem: .dat protegido -> .txt legado (migra) -> token da extensao ja
+    instalada (compat de upgrade) -> token novo. Se o DPAPI falhar, o token
+    vale apenas para esta execucao (nunca e gravado em claro).
+    """
+    token = _read_secure_token()
+    if token:
+        if LEGACY_TOKEN_FILE.exists():
+            # .dat novo ja existe: limpa a copia em texto puro.
+            _remove_legacy_token()
+        return token
+    legacy = _read_legacy_token()
+    if legacy:
+        if _persist_token(legacy):
+            _remove_legacy_token()
+        else:
+            log.warning(
+                "bridge: token legado .txt mantido (DPAPI indisponivel); migre depois "
+                "com configurar_spotify_bridge.bat"
+            )
+        return legacy
     # Se o protótipo já instalou a extensão, reutiliza o token para evitar
     # incompatibilidade enquanto o usuário migra para o V integrado.
-    tok = _token_from_installed_extension() or secrets.token_urlsafe(32)
-    TOKEN_FILE.write_text(tok, encoding="utf-8")
-    return tok
+    installed = _token_from_installed_extension()
+    if installed:
+        _persist_token(installed)
+        return installed
+    token = secrets.token_urlsafe(32)
+    if not _persist_token(token):
+        log.warning(
+            "bridge: token efemero nesta execucao (nao gravado). Rode "
+            "configurar_spotify_bridge.bat para instalar a extensao com um token persistente."
+        )
+    return token
+
+
+def _token_from_request(handler) -> str:
+    """Token por header (preferido); query apenas nos paths de handshake."""
+    header_token = str(handler.headers.get(TOKEN_HEADER) or "").strip()
+    if header_token:
+        return header_token
+    parsed = urlparse(handler.path)
+    if parsed.path not in HANDSHAKE_PATHS:
+        return ""
+    query = parse_qs(parsed.query)
+    return str((query.get("token") or [""])[0]).strip()
+
+
+def _legacy_query_recent(seconds: float = 120.0) -> bool:
+    seen = float(_last_seen.get("legacy_query") or 0)
+    return bool(seen) and (time.time() - seen) <= seconds
 
 
 def _authorized(handler) -> bool:
-    from urllib.parse import urlparse, parse_qs
-    q = parse_qs(urlparse(handler.path).query)
-    return q.get("token", [""])[0] == ensure_token()
+    supplied = _token_from_request(handler)
+    expected = ensure_token()
+    if not supplied or not expected:
+        return False
+    try:
+        ok = secrets.compare_digest(supplied, expected)
+    except Exception:
+        return False
+    if ok and not str(handler.headers.get(TOKEN_HEADER) or "").strip():
+        # Autenticou via query string: extensao antiga (protocolo legado).
+        _last_seen["legacy_query"] = time.time()
+        _log("legacy_query_auth", path=urlparse(handler.path).path)
+    return ok
 
 
 class _Handler(BaseHTTPRequestHandler):
-    server_version = "VSpotifyBridge/1.0"
+    server_version = "VSpotifyBridge/1.1"
 
     def _cors(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        # Reflete apenas a origem da extensao (ou do Spotify Desktop, onde a
+        # extensao roda). Nunca "*": pagina local nenhuma le a resposta.
+        origin = _allowed_origin(self.headers.get("Origin"))
+        if origin:
+            self.send_header("Access-Control-Allow-Origin", origin)
+            self.send_header("Vary", "Origin")
+        self.send_header(
+            "Access-Control-Allow-Headers",
+            f"Content-Type, {TOKEN_HEADER}, {CLIENT_HEADER}",
+        )
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
     def _json(self, code, obj):
@@ -107,6 +373,11 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(raw)
 
+    def _no_content(self, code=204):
+        self.send_response(code)
+        self._cors()
+        self.end_headers()
+
     def _body_json(self):
         n = int(self.headers.get("Content-Length", "0") or 0)
         raw = self.rfile.read(n) if n else b"{}"
@@ -117,8 +388,45 @@ class _Handler(BaseHTTPRequestHandler):
         self._cors()
         self.end_headers()
 
+    def _poll_command(self):
+        """Entrega um comando pendente a UM cliente, sem permitir roubo.
+
+        Enquanto um comando entregue nao retorna em /result (ou enquanto a
+        lease nao expira), qualquer novo poll — de outro cliente ou nao —
+        recebe 409 em vez de retirar/sobrescrever o comando em andamento.
+        """
+        client = _client_key(self)
+        inflight = _inflight_snapshot()
+        if inflight:
+            same_client = inflight.get("client") == client
+            log.warning(
+                "bridge: poll recusado; comando %s em andamento (mesmo_cliente=%s)",
+                inflight.get("id"),
+                same_client,
+            )
+            _log(
+                "poll_refused",
+                reason="command_in_progress",
+                client=client,
+                command_id=inflight.get("id"),
+                same_client=same_client,
+            )
+            self._json(409, {
+                "ok": False,
+                "error": "command_in_progress",
+                "id": inflight.get("id"),
+            })
+            return
+        _last_seen["extension"] = time.time()
+        try:
+            cmd = _commands.get(timeout=0.25)
+        except queue.Empty:
+            self._no_content()
+            return
+        _claim_inflight(cmd, client)
+        self._json(200, cmd)
+
     def do_GET(self):
-        from urllib.parse import urlparse
         path = urlparse(self.path).path
         if path == "/health":
             age = None if not _last_seen["extension"] else round(time.time() - _last_seen["extension"], 2)
@@ -128,34 +436,33 @@ class _Handler(BaseHTTPRequestHandler):
                 "extension_seen": bool(_last_seen["extension"]),
                 "extension_age_s": age,
                 "last_status": _last_seen["last_status"],
+                "legacy_query_token": _legacy_query_recent(),
+                "token_storage": "dpapi" if TOKEN_FILE.exists() else "ephemeral",
+                "token_notice": (
+                    "O token do bridge tambem fica embutido no JS da extensao "
+                    "(%APPDATA%\\spicetify\\Extensions\\vSpotifyBridge.js). "
+                    "Se esse arquivo vazar, rode configurar_spotify_bridge.bat "
+                    "para gerar um token novo."
+                ),
             })
             return
         if not _authorized(self):
             self._json(403, {"ok": False, "error": "forbidden"})
             return
-        if path == "/next":
-            _last_seen["extension"] = time.time()
-            try:
-                cmd = _commands.get(timeout=0.25)
-            except queue.Empty:
-                self.send_response(204)
-                self._cors()
-                self.end_headers()
-                return
-            self._json(200, cmd)
+        if path in ("/next", "/previous"):
+            self._poll_command()
             return
         self._json(404, {"ok": False, "error": "not_found"})
 
     def do_POST(self):
-        from urllib.parse import urlparse
         path = urlparse(self.path).path
         if not _authorized(self):
             self._json(403, {"ok": False, "error": "forbidden"})
             return
         try:
             body = self._body_json()
-        except Exception as exc:
-            self._json(400, {"ok": False, "error": f"invalid_json: {exc}"})
+        except Exception:
+            self._json(400, {"ok": False, "error": "invalid_json"})
             return
         if path == "/command":
             action = str(body.get("action", "")).strip()
@@ -183,6 +490,7 @@ class _Handler(BaseHTTPRequestHandler):
             return
         if path == "/result":
             cid = str(body.get("id", ""))
+            _release_inflight(cid)
             _last_seen["extension"] = time.time()
             if body.get("status"):
                 _last_seen["last_status"] = body.get("status")
@@ -212,13 +520,14 @@ def _url(path: str) -> str:
 
 
 def _request(path: str, method="GET", obj=None, timeout=2.5, token=False):
-    if token:
-        sep = "&" if "?" in path else "?"
-        path = f"{path}{sep}token={ensure_token()}"
     data = None if obj is None else json.dumps(obj).encode("utf-8")
     req = urllib.request.Request(_url(path), data=data, method=method)
     if data is not None:
         req.add_header("Content-Type", "application/json")
+    if token:
+        # Token sempre por header; nunca na query string (evita vazar em log,
+        # historico de proxy ou cabecalho Referer).
+        req.add_header(TOKEN_HEADER, ensure_token())
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             raw = r.read().decode("utf-8")
@@ -319,6 +628,16 @@ def command(action: str, args=None, timeout=None, launch_if_needed=False):
         token=True,
     )
     body = body or {}
+    if code == 504 and _legacy_query_recent():
+        # Extensao antiga autenticando por query string: o servidor recusa o
+        # token fora do handshake, entao o comando nunca e executado. Falhe
+        # alto e claro em vez de esperar em silencio.
+        log.warning("bridge: extensao antiga (token na query); pedido nao executado")
+        body = {
+            "ok": False,
+            "error": "Extensão Spotify desatualizada: rode configurar_spotify_bridge.bat "
+                     "e reinicie o Spotify Desktop.",
+        }
     return bool(code == 200 and body.get("ok")), body
 
 

@@ -31,7 +31,7 @@ _URL_RE = re.compile(r"https?://[^\s<>\"']+", flags=re.I)
 class VInternalPanel(QFrame):
     """Janela interna do V com HUD + modo apresentação.
 
-    1.8.3:
+    Notas de versão:
     - notícias abrem em um HUD compacto na lateral esquerda;
     - um card por matéria (fonte, manchete, resumo e imagem);
     - imagens usam feed -> matéria real -> busca por título como fallback;

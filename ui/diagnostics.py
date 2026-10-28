@@ -122,8 +122,6 @@ class DiagnosticsDialog(QDialog):
                 lines.append("Remote: estado indisponível neste inicializador; use a interface Dual.")
             else:
                 lines.append("Remote local: " + ("servidor iniciado" if remote.get('server') else "servidor não iniciado"))
-                p2p = remote.get('p2p', {})
-                lines.append("Remote P2P: " + (str(p2p.get('mode', 'conectado')) if p2p.get('connected') else "desconectado ou não configurado"))
             try:
                 self.checked.emit("\n\n".join(lines))
             except RuntimeError:

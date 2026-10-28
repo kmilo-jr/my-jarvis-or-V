@@ -3,6 +3,10 @@ import hashlib
 import threading
 import time
 
+from vlog import get_logger
+
+log = get_logger(__name__)
+
 
 class CaptureUnavailable(RuntimeError):
     pass
@@ -51,10 +55,23 @@ class LiveNotifications:
         self.probes = probes or {'gmail': gmail_delta, 'messages': messages_delta}
         self.lock = threading.Lock()
         self.busy = set(); self.next_check = {}; self.failures = {}; self.status = {}
+        self._threads: dict[str, threading.Thread] = {}
         self.closed = False
 
     def close(self):
-        with self.lock: self.closed = True
+        with self.lock:
+            self.closed = True
+            threads = list(self._threads.items())
+        for name, thread in threads:
+            if thread is threading.current_thread():
+                continue
+            try:
+                thread.join(timeout=2.0)
+            except RuntimeError as exc:  # thread nunca iniciada
+                log.warning('não foi possível aguardar thread de notificações %s: %s', name, type(exc).__name__)
+                continue
+            if thread.is_alive():
+                log.warning('thread de notificações %s ainda ativa após 2 s; seguindo com o fechamento', name)
 
     def tick(self):
         cfg = self.store.snapshot()['settings']
@@ -64,7 +81,9 @@ class LiveNotifications:
             for name in self.probes:
                 if cfg.get(name) and name not in self.busy and time.monotonic() >= self.next_check.get(name, 0):
                     self.busy.add(name)
-                    threading.Thread(target=self._run, args=(name,), daemon=True, name='V-Notify-'+name).start()
+                    thread = threading.Thread(target=self._run, args=(name,), daemon=True, name='V-Notify-'+name)
+                    self._threads[name] = thread
+                    thread.start()
 
     def _run(self, name):
         delay = 30 if name == 'gmail' else 5
@@ -82,7 +101,11 @@ class LiveNotifications:
                 delay = min(300, delay * 2 ** min(4, self.failures[name]))
                 reason = 'Captura automática de mensagens indisponível' if isinstance(exc, CaptureUnavailable) else f'Falha ({type(exc).__name__})'
                 self.status[name] = f'{reason}; nova tentativa em {delay} s. Confira Conexões.'
+            # Sem conteúdo de e-mail/mensagem: apenas o tipo da exceção.
+            log.warning('consulta de notificações %s falhou: %s', name, type(exc).__name__)
         finally:
             with self.lock:
                 self.next_check[name] = time.monotonic() + delay
                 self.busy.discard(name)
+                if self._threads.get(name) is threading.current_thread():
+                    self._threads.pop(name, None)

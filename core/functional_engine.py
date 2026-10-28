@@ -13,6 +13,9 @@ from typing import Callable
 
 from .tool_system import ToolContext, ToolCall, ToolExecution, build_default_registry, save_tool_trace
 from .tool_router import ToolRouter
+from vlog import get_logger
+
+log = get_logger(__name__)
 
 
 @dataclass
@@ -293,8 +296,9 @@ class FunctionalEngine:
                 obj = json.loads(self.history_path.read_text(encoding="utf-8"))
                 items = obj.get("history", []) if isinstance(obj, dict) else []
                 return [x for x in items if isinstance(x, dict) and x.get("role") in ("user", "assistant") and x.get("content")][-40:]
-        except Exception:
-            pass
+        except Exception as exc:
+            # Não registra conteúdo de conversa, só o tipo da falha.
+            log.warning("falha ao carregar histórico de conversa: %s", type(exc).__name__)
         return []
 
     def _save_history(self):
@@ -303,8 +307,9 @@ class FunctionalEngine:
             tmp = self.history_path.with_suffix(".tmp")
             tmp.write_text(json.dumps({"version": 1, "history": self.history[-40:]}, ensure_ascii=False, indent=2), encoding="utf-8")
             tmp.replace(self.history_path)
-        except Exception:
-            pass
+        except Exception as exc:
+            # Falha de gravação não pode travar o app, mas precisa deixar rastro.
+            log.warning("falha ao salvar histórico de conversa: %s", type(exc).__name__)
 
     def _append_history(self, role: str, content: str):
         if content:
@@ -352,7 +357,8 @@ class FunctionalEngine:
         if re.fullmatch(r"(?:o que voce lembra de mim|o que voce lembra|quais memorias voce tem|mostre suas memorias|mostre o que lembra)", c):
             try:
                 memories = list(self.memory.get_memories())
-            except Exception:
+            except Exception as exc:
+                log.warning("falha ao listar memórias: %s", type(exc).__name__)
                 memories = []
             if not memories:
                 return [FunctionalResult(True, True, "Ainda não tenho nenhuma memória explícita salva.", "MEMORY")]
@@ -413,7 +419,8 @@ class FunctionalEngine:
         payload=[{"tool": r.skill, "ok": r.ok, "message": r.message, "data": r.data or {}} for r in results]
         try:
             reply=self.brain.respond_after_tools(raw, self.history[:-1], payload, self._brain_context())
-        except Exception:
+        except Exception as exc:
+            log.warning("brain.respond_after_tools falhou: %s", type(exc).__name__)
             reply=None
         if not reply:
             return results
@@ -547,7 +554,8 @@ class FunctionalEngine:
         if self.brain is not None:
             try:
                 answer = self.brain.chat(cmd, self.history)
-            except Exception:
+            except Exception as exc:
+                log.warning("brain.chat (fallback legado) falhou: %s", type(exc).__name__)
                 answer = None
         else:
             answer = None
@@ -560,88 +568,11 @@ class FunctionalEngine:
             )
         return FunctionalResult(True, True, answer, "AI BRAIN")
 
-    def _fast_path_candidate(self, raw: str) -> bool:
-        """Comandos inequívocos continuam rápidos e independentes da IA."""
-        c = normalize(canonicalize_spoken_command(raw))
-        if not c:
-            return False
-        patterns = (
-            r"^(?:aumente|diminua) o volume$",
-            r"^mute$",
-            r"^coloque o volume em \d{1,3}$",
-            r"^(?:estado|status) do (?:pc|computador)$",
-            r"^(?:abra|feche) .+",
-            r"^(?:toque|reproduza|coloque) .+ (?:no|na) spotify$",
-            r"^pesquise no youtube .+",
-            r"^(?:minimize|maximize) a janela$",
-            r"^mostre a area de trabalho$",
-        )
-        return any(re.match(p, c, flags=re.I) for p in patterns)
-
-    def _ai_action_to_command(self, action: dict) -> str | None:
-        tool = str((action or {}).get("tool", "")).strip()
-        args = (action or {}).get("args") if isinstance((action or {}).get("args"), dict) else {}
-        if tool == "open_app":
-            target = str(args.get("target", "")).strip(); return f"abra {target}" if target else None
-        if tool == "close_app":
-            target = str(args.get("target", "")).strip(); return f"feche {target}" if target else None
-        if tool == "pc_status": return "estado do pc"
-        if tool == "volume_up": return "aumente o volume"
-        if tool == "volume_down": return "diminua o volume"
-        if tool == "volume_mute": return "mute"
-        if tool == "set_volume":
-            try: value = max(0, min(100, int(float(args.get("value")))))
-            except Exception: return None
-            return f"coloque o volume em {value}"
-        if tool == "media_play_pause": return "pause a musica"
-        if tool == "media_next": return "proxima musica"
-        if tool == "media_previous": return "musica anterior"
-        if tool == "spotify_play":
-            q = str(args.get("query", "")).strip(); return f"toque {q} no spotify" if q else None
-        if tool == "youtube_search":
-            q = str(args.get("query", "")).strip(); return f"pesquise no youtube {q}" if q else None
-        if tool == "youtube_play":
-            q = str(args.get("query", "")).strip(); return f"toque {q} no youtube" if q else None
-        if tool == "web_search":
-            q = str(args.get("query", "")).strip(); return f"pesquise {q}" if q else None
-        if tool == "minimize_window": return "minimize a janela"
-        if tool == "maximize_window": return "maximize a janela"
-        if tool == "show_desktop": return "mostre a area de trabalho"
-        return None
-
-    def _looks_conversational(self, raw: str) -> bool:
-        """Detecta fala que deve ir direto para conversa, não para o Planner.
-
-        O objetivo não é substituir a IA por regras. Esta função apenas evita
-        exigir JSON/tool planning para saudações e perguntas claramente
-        conversacionais. A resposta continua vindo do modelo local.
-        """
-        c = normalize(strip_wake_word(raw))
-        if not c:
-            return False
-        greetings = (
-            r"^(?:ola|oi|opa|e ai|bom dia|boa tarde|boa noite)(?:\s+v)?(?:\s+.*)?$",
-            r"^(?:tudo bem|como voce esta|como vc esta|como vai|ta tudo bem)(?:\s+v)?$",
-            r"^(?:obrigado|obrigada|valeu|vlw|brigado|brigada)(?:\s+v)?$",
-        )
-        if any(re.match(p, c, flags=re.I) for p in greetings):
-            return True
-        # Perguntas gerais que não parecem pedir controle do computador.
-        local_markers = (
-            "pc", "computador", "volume", "spotify", "youtube", "discord",
-            "janela", "desktop", "abra", "abrir", "feche", "fechar",
-            "toque", "tocar", "musica", "música", "pause", "proxima",
-            "próxima", "pesquise", "procur", "busque", "estado do",
-        )
-        questionish = bool(re.search(r"\b(o que|oque|quem|por que|porque|como|qual|quais|quando|onde|me explica|explique|acha que|pensa sobre)\b", c))
-        if questionish and not any(m in c for m in local_markers):
-            return True
-        return False
-
     def _brain_wants_live_search(self, raw: str) -> bool:
         try:
             return bool(self.brain is not None and hasattr(self.brain, "should_use_live_search") and self.brain.should_use_live_search(raw))
-        except Exception:
+        except Exception as exc:
+            log.warning("brain.should_use_live_search falhou: %s", type(exc).__name__)
             return False
 
     def _chat_with_brain(self, raw: str, history: list[dict] | None = None, speech_callback=None) -> FunctionalResult | None:
@@ -655,7 +586,8 @@ class FunctionalEngine:
                 streamed=bool(answer) and bool(latency.get("streaming"))
             else:
                 answer=self.brain.chat(raw, history if history is not None else self.history[:-1], self._brain_context())
-        except Exception:
+        except Exception as exc:
+            log.warning("brain.chat falhou: %s", type(exc).__name__)
             answer=None
         if answer:
             data={"brain_ms":round((time.perf_counter()-started)*1000.0,1),"streamed_speech":streamed}
@@ -694,7 +626,8 @@ class FunctionalEngine:
         try:
             query = ' '.join(x.get('content', '') for x in self.history[-4:] if x.get('role') == 'user')
             memories = self.memory.relevant(query) if hasattr(self.memory, 'relevant') else self.memory.get_memories()[-12:]
-        except Exception:
+        except Exception as exc:
+            log.warning("falha ao montar contexto de memórias: %s", type(exc).__name__)
             memories = []
         return {
             "active_project": self._project_context(),
@@ -750,86 +683,6 @@ class FunctionalEngine:
             return [self._open_diagnostics_folder()]
 
         return None
-
-    def _spotify_context_active(self) -> bool:
-        """Retorna True somente se o contexto recente realmente for de mídia/Spotify."""
-        recent = self.history[-6:]
-        joined = " ".join(normalize(str(x.get("content", ""))) for x in recent)
-        return any(tok in joined for tok in ("spotify", "musica", "faixa", "tocando", "radiohead", "playlist"))
-
-    def _validate_ai_action(self, action: dict, raw: str) -> tuple[bool, str]:
-        """Valida se uma ação proposta pela IA é semanticamente compatível com a frase.
-
-        A allowlist limita *quais* ferramentas existem. Este firewall limita
-        *quando* cada ferramenta pode ser chamada. Assim um modelo pequeno não
-        consegue transformar 'notícias do dia' em spotify_play só porque errou
-        o planejamento.
-        """
-        tool = str((action or {}).get("tool", "")).strip()
-        c = normalize(strip_wake_word(raw))
-
-        if tool == "spotify_play":
-            explicit_spotify = "spotify" in c
-            strong_music = bool(re.search(r"\b(toque|toca|tocar|reproduza|reproduzir|ouvir|escutar|musica|faixa|cancao|playlist)\b", c))
-            softer_music = bool(re.search(r"\b(coloque|coloca|colocar|bote|bota|poe)\b", c)) and not any(x in c for x in ("volume", "janela", "brilho", "pasta", "arquivo"))
-            contextual = self._spotify_context_active() and bool(re.search(r"\b(outra|proxima|troca|essa|essa nao|de novo)\b", c))
-            if explicit_spotify or strong_music or softer_music or contextual:
-                return True, ""
-            return False, "spotify_play rejeitado: a frase não contém intenção de música/Spotify"
-
-        if tool in {"volume_up", "volume_down", "volume_mute", "set_volume"}:
-            if any(x in c for x in ("volume", "som", "audio", "áudio", "mute", "mudo")):
-                return True, ""
-            return False, f"{tool} rejeitado: sem intenção explícita de volume"
-
-        if tool in {"media_play_pause", "media_next", "media_previous"}:
-            media_words = ("musica", "faixa", "midia", "spotify", "youtube", "pause", "pausar", "proxima", "anterior", "continue", "tocar")
-            if any(x in c for x in media_words) or self._spotify_context_active():
-                return True, ""
-            return False, f"{tool} rejeitado: sem contexto de mídia"
-
-        if tool in {"youtube_search", "youtube_play"}:
-            if "youtube" in c or any(x in c for x in ("video", "live", "canal")):
-                return True, ""
-            return False, f"{tool} rejeitado: sem intenção de YouTube/vídeo"
-
-        if tool == "pc_status":
-            if any(x in c for x in ("pc", "computador", "cpu", "ram", "disco", "sistema")):
-                return True, ""
-            return False, "pc_status rejeitado: sem referência ao computador"
-
-        if tool in {"minimize_window", "maximize_window", "show_desktop"}:
-            if any(x in c for x in ("janela", "desktop", "area de trabalho", "tela")):
-                return True, ""
-            return False, f"{tool} rejeitado: sem intenção de janela/desktop"
-
-        if tool == "open_app":
-            if re.search(r"\b(abra|abre|abrir|inicie|iniciar|acesse|acessar)\b", c):
-                return True, ""
-            return False, "open_app rejeitado: sem verbo de abertura"
-
-        if tool == "close_app":
-            if re.search(r"\b(feche|fecha|fechar|encerre|encerrar)\b", c):
-                return True, ""
-            return False, "close_app rejeitado: sem verbo de fechamento"
-
-        # web_search é permissivo porque não executa controle do PC.
-        return True, ""
-
-    def _write_brain_router_log(self, raw: str, plan, accepted: list[dict], rejected: list[dict]):
-        try:
-            logs_dir = Path(__file__).resolve().parent.parent / "logs"
-            logs_dir.mkdir(parents=True, exist_ok=True)
-            data = {
-                "user_request": raw,
-                "plan_mode": getattr(plan, "mode", None),
-                "raw_plan": getattr(plan, "raw", None),
-                "accepted_actions": accepted,
-                "rejected_actions": rejected,
-            }
-            (logs_dir / "brain_router_last.json").write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
-        except Exception:
-            pass
 
     def _tool_exec_to_result(self, execution) -> FunctionalResult:
         skill = str(getattr(execution, "name", "TOOL") or "TOOL").upper()
@@ -894,9 +747,11 @@ class FunctionalEngine:
             # Compatibilidade com BrainService antigo/dublês de teste.
             try:
                 plan = self.brain.plan(raw, self.history[:-1], self._brain_context())
-            except Exception:
+            except Exception as exc:
+                log.warning("planner (assinatura antiga) falhou: %s", type(exc).__name__)
                 plan = None
-        except Exception:
+        except Exception as exc:
+            log.warning("planner falhou: %s", type(exc).__name__)
             plan = None
         if plan is None:
             return None
@@ -918,47 +773,6 @@ class FunctionalEngine:
             })
             return None
         return self._execute_tool_calls(calls, raw, "ai_planner", progress_callback, plan=plan)
-
-    def _handle_with_ai(self, raw: str, progress_callback=None):
-        if self.brain is None or not hasattr(self.brain, "plan"):
-            return None
-        if progress_callback:
-            progress_callback("AI BRAIN • entendendo intenção")
-        try:
-            plan = self.brain.plan(raw, self.history[:-1], self._brain_context())
-        except Exception:
-            plan = None
-        if plan is None:
-            return None
-        if getattr(plan, "mode", "") == "chat":
-            msg = getattr(plan, "reply", "") or "Pode me explicar um pouco melhor?"
-            return [FunctionalResult(True, True, msg, "AI BRAIN")]
-        commands = []
-        accepted_actions = []
-        rejected_actions = []
-        for action in (getattr(plan, "actions", None) or []):
-            allowed, reason = self._validate_ai_action(action, raw)
-            if not allowed:
-                rejected_actions.append({"action": action, "reason": reason})
-                continue
-            cmd = self._ai_action_to_command(action)
-            if cmd:
-                commands.append(cmd)
-                accepted_actions.append(action)
-        self._write_brain_router_log(raw, plan, accepted_actions, rejected_actions)
-        if not commands:
-            return None
-        if progress_callback:
-            progress_callback(f"AI BRAIN • plano com {len(commands)} ação(ões)")
-        results = []
-        for idx, cmd in enumerate(commands, 1):
-            if progress_callback:
-                progress_callback(f"IA {idx}/{len(commands)} • {cmd}")
-            r = self._execute_one(cmd)
-            if r.skill not in ("SECURITY", "BRAIN"):
-                r.data = dict(r.data or {}, planned_by="AI BRAIN")
-            results.append(r)
-        return results
 
     def handle(self, text: str, confirm_callback=None, progress_callback: Callable[[str], None] | None = None, speech_callback=None):
         raw = str(text or "").strip()
@@ -1044,7 +858,8 @@ class FunctionalEngine:
             from .briefing_preferences import load
             try:
                 settings = load()
-            except Exception:
+            except Exception as exc:
+                log.warning("preferências do resumo do dia indisponíveis: %s", type(exc).__name__)
                 return [FunctionalResult(True, False, 'Não consegui ler as preferências. Abra Editar bom dia e salve novamente.', 'RESUMO DO DIA')]
             if progress_callback: progress_callback('Bom dia · iniciando música no Spotify')
             music_card = start_music(volume_limit=settings['music_volume']/100) if settings['music_enabled'] else None

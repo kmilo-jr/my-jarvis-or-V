@@ -36,8 +36,6 @@ REMOTE_HTML = r"""<!doctype html>
     <div class="top"><div class="brand">V REMOTE</div><div class="status"><span class="dot"></span><span id="pairMode">LOCAL</span></div></div>
     <p class="sub">Digite o PIN mostrado no computador para parear este celular.</p>
     <input id="pin" class="pin" inputmode="numeric" maxlength="6" placeholder="000000">
-    <input id="externalKey" class="field hidden" placeholder="Chave externa (para acesso fora de casa)">
-    <div id="pairUrl" class="mini"></div>
     <button class="btn red wide" style="width:100%;margin-top:12px" onclick="pair()">PAREAR</button>
     <div id="pairError" class="error"></div>
     <div id="pairHint" class="mini">O controle remoto desta versão funciona na mesma rede local do V.</div>
@@ -48,8 +46,7 @@ REMOTE_HTML = r"""<!doctype html>
     <div class="card hero">
       <div class="face"><div class="jaw"></div></div>
       <div id="vState" class="state">READY</div>
-      <div class="row" style="margin-top:10px"><span id="uiMode" class="badge">UI —</span><span id="voiceState" class="badge">VOICE —</span><span id="accessMode" class="badge">REMOTE —</span></div>
-      <div id="publicUrlBadge" class="mini"></div>
+      <div class="row" style="margin-top:10px"><span id="uiMode" class="badge">UI —</span><span id="voiceState" class="badge">VOICE —</span></div>
     </div>
 
     <div class="card">
@@ -116,16 +113,16 @@ REMOTE_HTML = r"""<!doctype html>
         <button class="btn red wide" onclick="confirmAction('shutdown_pc','Desligar o computador?')">⏻ DESLIGAR PC</button>
       </div>
     </div>
-    <div class="mini">V Remote v1.6 • controle avançado + V Mobile • local e pronto para acesso externo seguro</div>
+    <div class="mini">V Remote v1.6 • controle avançado + V Mobile • mesmo Wi-Fi/LAN</div>
   </div>
 </div>
 <script>
-let REMOTE_META={allow_internet:false,public_url:'',external_pair_required:false,access_mode:'local'};
+let REMOTE_META={};
 async function api(path, opts={}){const r=await fetch(path,{...opts,headers:{'Content-Type':'application/json',...(opts.headers||{})}});let j={};try{j=await r.json()}catch(e){}if(r.status===401){showPair();throw new Error('not paired')}if(!r.ok)throw new Error(j.error||'Falha');return j}
 function showPair(){document.getElementById('pairView').classList.remove('hidden');document.getElementById('remoteView').classList.add('hidden')}
 function showRemote(){document.getElementById('pairView').classList.add('hidden');document.getElementById('remoteView').classList.remove('hidden')}
-async function loadMeta(){try{REMOTE_META=await api('/api/meta');}catch(e){return}const local=REMOTE_META.access_mode==='local';document.getElementById('pairMode').textContent=local?'LOCAL':'EXTERNO';document.getElementById('pairHint').textContent=REMOTE_META.allow_internet?'Você pode usar este link também fora de casa. Para o primeiro pareamento externo, use o PIN e a chave externa mostrados no PC.':'O controle remoto desta versão funciona na mesma rede local do V.';const keyField=document.getElementById('externalKey');if(REMOTE_META.external_pair_required){keyField.classList.remove('hidden')}else{keyField.classList.add('hidden')}const pairUrl=document.getElementById('pairUrl');pairUrl.innerHTML='';if(REMOTE_META.public_url){pairUrl.innerHTML='Link externo: <span class="mono">'+REMOTE_META.public_url+'</span>'}}
-async function pair(){const pin=document.getElementById('pin').value.trim();const external_key=document.getElementById('externalKey').value.trim();const e=document.getElementById('pairError');e.textContent='';try{await api('/api/pair',{method:'POST',body:JSON.stringify({pin,external_key})});showRemote();refresh()}catch(err){e.textContent='PIN incorreto, chave externa incorreta ou limite de tentativas atingido.'}}
+async function loadMeta(){try{REMOTE_META=await api('/api/meta');const hint=document.getElementById('pairHint');if(REMOTE_META.local_url){hint.textContent='Controle remoto somente na mesma rede Wi-Fi/LAN. Abra '+REMOTE_META.local_url+' no celular.'}}catch(e){}}
+async function pair(){const pin=document.getElementById('pin').value.trim();const e=document.getElementById('pairError');e.textContent='';try{await api('/api/pair',{method:'POST',body:JSON.stringify({pin})});showRemote();refresh()}catch(err){e.textContent='PIN incorreto ou limite de tentativas atingido.'}}
 async function cmd(text){try{await api('/api/command',{method:'POST',body:JSON.stringify({text})})}catch(e){}}
 function sendCommand(){const i=document.getElementById('command');const t=i.value.trim();if(!t)return;cmd(t);i.value=''}
 async function action(name){try{await api('/api/action',{method:'POST',body:JSON.stringify({name})})}catch(e){}}
@@ -136,8 +133,8 @@ async function runMobile(id,url){try{await api('/api/mobile/ack',{method:'POST',
 function renderPending(actions,prepend=false){const box=document.getElementById('mobilePending');if(!actions||!actions.length){box.innerHTML='Nenhuma ação pendente para o iPhone.';return}box.innerHTML=actions.map(a=>'<div class="mobileAction"><b>'+a.title+'</b><div class="mini">'+(a.subtitle||'')+'</div><button class="btn red wide" style="margin-top:8px" onclick="runMobile(\''+a.id+'\',\''+a.shortcut_url+'\')">ABRIR NO IPHONE</button></div>').join('')}
 function renderNotifications(data){const backend=(data&&data.backend)||{};const status=document.getElementById('notificationStatus');status.textContent=backend.message||'Aguardando ponte de notificações...';if(backend.error){status.innerHTML+='<br><span class="warn">'+backend.error+'</span>'}const list=document.getElementById('notificationList');const items=(data&&data.notifications)||[];list.innerHTML=items.map(n=>'<div class="notification"><div class="app">'+n.app+'</div><div><b>'+(n.title||'Sem título')+'</b></div><div class="body">'+(n.body||'')+'</div></div>').join('')}
 async function refreshMobile(){try{const m=await api('/api/mobile');renderPending(m.actions||[]);renderNotifications(m)}catch(e){}}
-async function refresh(){try{const s=await api('/api/status');showRemote();document.getElementById('vState').textContent=s.state||'READY';document.getElementById('uiMode').textContent='UI '+(s.mode||'—').toUpperCase();document.getElementById('voiceState').textContent='VOICE '+(s.voice_enabled?'ON':'OFF');document.getElementById('accessMode').textContent='REMOTE '+((s.remote_access_mode||REMOTE_META.access_mode||'local').toUpperCase());document.getElementById('onlineText').textContent=s.busy?'OCUPADO':'ONLINE';document.getElementById('cpuState').textContent='CPU '+(s.cpu_percent??'—')+'%';document.getElementById('ramState').textContent='RAM '+(s.ram_percent??'—')+'%';document.getElementById('diskState').textContent='DISCO '+(s.disk_percent??'—')+'%';const pub=document.getElementById('publicUrlBadge');pub.innerHTML=s.public_url?('Link remoto: <span class="mono">'+s.public_url+'</span>'):'';const wb=document.getElementById('wakeBtn');if(wb){wb.disabled=!s.wol_configured;wb.textContent=s.wol_configured?'⏻ ENVIAR WAKE-ON-LAN':'⏻ WOL NÃO CONFIGURADO'}await refreshMobile()}catch(e){}}
-loadMeta().then(()=>refresh()); setInterval(refresh,2600);
+async function refresh(){try{const s=await api('/api/status');showRemote();document.getElementById('vState').textContent=s.state||'READY';document.getElementById('uiMode').textContent='UI '+(s.mode||'—').toUpperCase();document.getElementById('voiceState').textContent='VOICE '+(s.voice_enabled?'ON':'OFF');document.getElementById('onlineText').textContent=s.busy?'OCUPADO':'ONLINE';document.getElementById('cpuState').textContent='CPU '+(s.cpu_percent??'—')+'%';document.getElementById('ramState').textContent='RAM '+(s.ram_percent??'—')+'%';document.getElementById('diskState').textContent='DISCO '+(s.disk_percent??'—')+'%';const wb=document.getElementById('wakeBtn');if(wb){wb.disabled=!s.wol_configured;wb.textContent=s.wol_configured?'⏻ ENVIAR WAKE-ON-LAN':'⏻ WOL NÃO CONFIGURADO'}await refreshMobile()}catch(e){}}
+loadMeta(); refresh(); setInterval(refresh,2600);
 </script>
 </body>
 </html>"""
@@ -165,9 +162,6 @@ class VRemoteServer:
         status_provider: Callable[[], dict],
         wake_callback: Callable[[], None] | None = None,
         port: int = 8765,
-        allow_internet: bool = False,
-        external_pair_key: str | None = None,
-        public_url: str = "",
     ):
         self.command_callback = command_callback
         self.action_callback = action_callback
@@ -180,16 +174,10 @@ class VRemoteServer:
         self._httpd: ThreadingHTTPServer | None = None
         self._thread: threading.Thread | None = None
         self.local_ip = _local_ipv4()
-        self.allow_internet = bool(allow_internet)
-        self.external_pair_key = str(external_pair_key or '').strip() or secrets.token_hex(4)
-        self.public_url = str(public_url or '').strip()
 
     @property
     def url(self) -> str:
         return f"http://{self.local_ip}:{self.port}"
-
-    def update_public_url(self, url: str | None):
-        self.public_url = str(url or '').strip()
 
     def _is_local_client(self, host: str) -> bool:
         try:
@@ -258,7 +246,7 @@ class VRemoteServer:
                 return parent._is_local_client(self.client_address[0])
 
             def _access_guard(self) -> bool:
-                if self._client_is_local() or parent.allow_internet:
+                if self._client_is_local():
                     return True
                 self._json(HTTPStatus.FORBIDDEN, {"error": "local network only"})
                 return False
@@ -280,11 +268,8 @@ class VRemoteServer:
                     return
                 if path == "/api/meta":
                     self._json(HTTPStatus.OK, {
-                        "allow_internet": parent.allow_internet,
-                        "external_pair_required": parent.allow_internet and (not self._client_is_local()),
-                        "public_url": parent.public_url,
                         "local_url": parent.url,
-                        "access_mode": "internet" if parent.allow_internet else "local",
+                        "access_mode": "local",
                     })
                     return
                 if path == "/api/status":
@@ -295,8 +280,6 @@ class VRemoteServer:
                         base = dict(parent.status_provider() or {})
                     except Exception:
                         base = {"state": "READY", "mode": "unknown", "voice_enabled": False, "busy": False}
-                    base.setdefault("remote_access_mode", "internet" if parent.allow_internet else "local")
-                    base.setdefault("public_url", parent.public_url)
                     self._json(HTTPStatus.OK, base)
                     return
                 if path == "/api/mobile":
@@ -330,11 +313,6 @@ class VRemoteServer:
                     if not hmac.compare_digest(supplied, parent.pin):
                         self._json(HTTPStatus.UNAUTHORIZED, {"error": "invalid pin"})
                         return
-                    if parent.allow_internet and not self._client_is_local():
-                        supplied_key = str(data.get("external_key", "")).strip()
-                        if not supplied_key or not hmac.compare_digest(supplied_key, parent.external_pair_key):
-                            self._json(HTTPStatus.UNAUTHORIZED, {"error": "invalid external key"})
-                            return
                     token = secrets.token_urlsafe(32)
                     parent.sessions.add(token)
                     headers = {"Set-Cookie": f"vremote={token}; HttpOnly; SameSite=Strict; Path=/"}
