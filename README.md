@@ -106,6 +106,12 @@ $env:QT_QPA_PLATFORM='offscreen'
 
 # gerar config/default.example.json a partir do config real (sem segredos)
 .venv\Scripts\python.exe tools\gerar_config_exemplo.py
+
+# Spotify ponta a ponta (bridge + extensão do Spicetify + comando real)
+.venv\Scripts\python.exe tools\verificar_spotify_e2e.py
+
+# performance de renderização (mede e compara pixels com uma referência)
+.venv\Scripts\python.exe tools\benchmark_render.py --compare logs/render_bench
 ```
 
 `requirements.txt` é o instalável mínimo. `requirements.lock.txt` é o ambiente completo

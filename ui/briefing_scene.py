@@ -1,7 +1,7 @@
 """Video-reference briefing visuals, painted locally without bitmap dependencies."""
 import math
 from PySide6.QtCore import Qt, QPointF, QRectF, QRect, QTimer
-from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QRadialGradient, QLinearGradient, QPixmap, QRegion
+from PySide6.QtGui import QColor, QFont, QPainter, QPainterPath, QPen, QPolygonF, QRadialGradient, QLinearGradient, QPixmap, QRegion
 from PySide6.QtWidgets import QWidget, QPushButton
 from .animation_clock import AnimationClock
 
@@ -17,11 +17,22 @@ class BriefingBackdrop(QWidget):
         self._clock = AnimationClock()
         self._background = None
         self._background_key = None
+        self._colors_cache = None
+        self._pens_cache = None
         self.theme = str(theme or 'blue').lower()
-        # The angular basis never changes. Keep every original vertex/ring.
-        self._rings = [[(math.cos(a), math.sin(a), math.sin(3*a+ring*.8),
-                         math.cos(3*a+ring*.8), math.sin(5*a+ring), math.cos(5*a+ring))
-                        for a in (math.tau*n/160 for n in range(161))] for ring in range(9)]
+        # A base angular NUNCA muda: guardamos os fatores ja multiplicados para o
+        # paintEvent nao refazer trigonometria nem comparar tema ponto a ponto.
+        self._rings = []
+        for ring in range(9):
+            base_anel = .91 + ring * .011
+            fatores = []
+            for n in range(161):
+                a = math.tau * n / 160
+                s3, c3 = math.sin(3*a + ring*.8), math.cos(3*a + ring*.8)
+                s5, c5 = math.sin(5*a + ring), math.cos(5*a + ring)
+                fatores.append((math.cos(a), math.sin(a),
+                                .048*s3, .048*c3, .028*c5, .028*s5, base_anel))
+            self._rings.append(tuple(fatores))
         self.timer = QTimer(self)
         self.timer.setTimerType(Qt.PreciseTimer)
         self.timer.setInterval(33)
@@ -35,9 +46,32 @@ class BriefingBackdrop(QWidget):
             self.theme = theme
             self._background = None
             self._background_key = None
+            self._colors_cache = None
+            self._pens_cache = None
             self.update()
 
     def _colors(self):
+        cache = self._colors_cache
+        if cache is not None and cache[0] == self.theme:
+            return cache[1]
+        cores = self._theme_colors()
+        self._colors_cache = (self.theme, cores)
+        return cores
+
+    def _pens(self):
+        """Canetas fixas por tema: evita recriar 20 QPen/QColor por quadro."""
+        cache = self._pens_cache
+        if cache is not None and cache[0] == self.theme:
+            return cache[1]
+        cores = self._colors()
+        ro, ri = cores['ring_outer'], cores['ring']
+        aneis = [(QPen(QColor(*ro, 25), 7), QPen(QColor(*ri, 70 + ring*11), .8))
+                 for ring in range(9)]
+        valor = (aneis, QPen(QColor(cores['point']), 1), QPen(QColor(cores['point_bright']), 1.4))
+        self._pens_cache = (self.theme, valor)
+        return valor
+
+    def _theme_colors(self):
         if self.theme == 'red':
             return {
                 'bg': '#0d0c14', 'deep': '#291323', 'glow': '#5f152c',
@@ -110,29 +144,30 @@ class BriefingBackdrop(QWidget):
         p = QPainter(self); p.setRenderHint(QPainter.Antialiasing)
         p.drawPixmap(0, 0, self._static_background())
         w, h = self.width(), self.height()
-        center = QPointF(w*.5, h*.49)
+        cx, cy = w*.5, h*.49
         radius = min(w*.28, h*(.27 if self.theme == 'red' else .35))
-        colors = self._colors()
+        aneis, pen_ponto, pen_ponto_brilho = self._pens()
+        ampliar = 1.6 if self.theme == 'red' else 1.0
         p.setBrush(Qt.NoBrush)
         sp, cp = math.sin(self.phase), math.cos(self.phase)
         sp2, cp2 = math.sin(self.phase*1.4), math.cos(self.phase*1.4)
-        for ring in range(9):
-            path = QPainterPath()
-            for n, (ca, sa, s3, c3, s5, c5) in enumerate(self._rings[ring]):
-                ripple = .048 * (s3*cp + c3*sp)
-                ripple += .028 * (c5*cp2 + s5*sp2)
-                if self.theme == 'red': ripple *= 1.6
-                r = radius * (.91 + ring * .011 + ripple)
-                point = QPointF(center.x() + r * ca, center.y() + r * sa)
-                if n == 0: path.moveTo(point)
-                else: path.lineTo(point)
-            ro = colors['ring_outer']; ri = colors['ring']
-            p.setPen(QPen(QColor(*ro, 25), 7)); p.drawPath(path)
-            p.setPen(QPen(QColor(*ri, 70 + ring * 11), .8)); p.drawPath(path)
+        for ring, fatores in enumerate(self._rings):
+            pontos = []
+            append = pontos.append
+            for ca, sa, a1, b1, a2, b2, base in fatores:
+                ripple = a1*cp + b1*sp + a2*cp2 + b2*sp2
+                r = radius * (base + ripple*ampliar)
+                append(QPointF(cx + r*ca, cy + r*sa))
+            linha = QPolygonF(pontos)
+            caminho = QPainterPath()
+            caminho.addPolygon(linha)
+            pen_glow, pen_anel = aneis[ring]
+            p.setPen(pen_glow); p.drawPath(caminho)
+            p.setPen(pen_anel); p.drawPath(caminho)
         # Small luminous listening point, as in the reference.
         c = QPointF(w / 2, h - 26)
-        p.setPen(QPen(QColor(colors['point']), 1)); p.drawEllipse(c, 15, 15)
-        p.setPen(QPen(QColor(colors['point_bright']), 1.4)); p.drawEllipse(c, 10, 10)
+        p.setPen(pen_ponto); p.drawEllipse(c, 15, 15)
+        p.setPen(pen_ponto_brilho); p.drawEllipse(c, 10, 10)
         for i in range(-3, 4):
             length = 2 + abs(math.sin(self.phase * 3 + i)) * (5 if self.speaking else 2)
             p.drawLine(QPointF(c.x() + i * 2, c.y() - length), QPointF(c.x() + i * 2, c.y() + length))

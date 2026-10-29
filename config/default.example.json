@@ -210,7 +210,6 @@
     "tts_qwen_device": "cpu"
   },
   "ui": {
-    "animation_fps": 12,
     "processing_sound_enabled": true,
     "processing_sound_delay_ms": 260,
     "processing_sound_volume": 0.16,

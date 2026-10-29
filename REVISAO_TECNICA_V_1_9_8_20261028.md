@@ -26,24 +26,27 @@ depois dela, e o que continua em aberto.
 | Organização | Raiz de ~230 para 55 arquivos: docs em `docs/{guias,historico,changelog,preview}`, scripts em `tools/`, migradores antigos em `docs/historico/migracoes/`. `README.md` reescrito. |
 | Bridge Spotify (pós-uso real) | A extensão reescrita falhava dentro do Spotify: `status()` lançava exceção em um getter real e, como resultado e heartbeat eram montados no mesmo `try`, o `POST /result` nunca acontecia (comando ficava "em andamento" e voltava 504). Agora cada campo de estado é lido defensivamente e falha de status não bloqueia o resultado. Validado ao vivo no Spotify 1.3.6: extensão online em 1 s e `volume`, `status` e `shuffle` retornando 200 com dados reais. |
 | Testes e CI | Teste do detector corrigido (deriva os blocos da config; 388 testes, 0 falhas). `edge-tts` 7.2.8 → **7.3.1**, o que resolveu o 403 da síntese online (validado gerando áudio pelo `VoiceEngine`). Workflow `.github/workflows/tests.yml` roda compileall + unittest offscreen no Windows; os commits foram enviados para `origin/main`. |
+| Spotify: teste e2e | `tools/verificar_spotify_e2e.py` automatiza o diagnóstico manual (bridge → extensão → comando real → bloqueio do protocolo antigo) e `tests/test_spotify_bridge_flow.py` cobre por unidade o protocolo por header, o lease 409 e o ciclo poll/result. Suíte: 392 testes. |
+| Performance do backdrop | `ui/briefing_scene.py` sem refazer trigonometria, com canetas e cores em cache e `QPainterPath.addPolygon`. Medido por `tools/benchmark_render.py`: **17,4 → 16,1 ms** tela cheia e **11,6 → 10,4 ms** na repintura parcial, com pixels idênticos (diff 0,000000). Chave morta `ui.animation_fps` removida do config. |
 | Robustez da voz e da UI | Falha de COM/`pythoncom` não mata mais a thread de saída (SAPI é desativado com log e Edge/Piper/XTTS seguem). A câmera é encerrada na troca de interface (F6), não só no fechamento. |
 | Git | O repositório já existia (remote `kmilo-jr/my-jarvis-or-V`) mas o estado da pasta não estava commitado. Criados dois commits na `main`: `8533a9f` (baseline) e `bfee612` (esta refatoração); árvore limpa com 387 arquivos versionados e nenhum segredo em `config/` (só o `default.example.json`). |
 
 **Validação executada**
 
 - `compileall` do código próprio: OK.
-- Suíte completa: **388 testes, 0 falhas** (28/10 tinha 1 falha de teste — ver "Testes e CI" acima).
+- Suíte completa: **392 testes, 0 falhas** (28/10 tinha 1 falha de teste — ver "Testes e CI" acima).
 - Validação de segurança: roundtrip DPAPI, migração de token legado, falha explícita sem DPAPI, allowlist de CORS e ACL — todos OK.
 - `tools/diagnostico_startup.py` rodando de `tools/`: OK.
 - Migração dos 4 segredos em texto puro: OK, releitura verificada.
+- `tools/verificar_spotify_e2e.py`: OK ao vivo (player real, protocolo antigo bloqueado, exit 0).
+- `tools/benchmark_render.py`: orbital 16,1 ms tela cheia / 10,4 ms região, pixels idênticos.
 
 **Continua em aberto (por prioridade)**
 
 1. `requirements.txt` instalado puro ainda é mais leve que o ambiente real (torch/TTS fora do mínimo) — por isso o `requirements.lock.txt` existe; gerar um `setup.ps1` que una os dois continua pendente.
-2. Backdrop orbital segue acima do orçamento de 16,7 ms no benchmark do projeto.
-3. `core/connections.py` só valida `access_mode == 'local'` — coerente agora, mas o teste de conexão continua raso.
-4. O teste e2e do Spotify (extensão online + comando real) ainda é manual; vale virar script em `tools/`.
-5. Empacotamento/distribuição (PyInstaller + instalador) não existe.
+2. `core/connections.py` só valida `access_mode == 'local'` — coerente agora, mas o teste de conexão continua raso.
+3. Empacotamento/distribuição (PyInstaller + instalador) não existe.
+4. A pintura do backdrop ainda é feita no thread da GUI; para folga extra daria para reduzir pontos dos anéis com perda visual imperceptível (hoje a geometria é preservada ao pixel).
 
 ---
 

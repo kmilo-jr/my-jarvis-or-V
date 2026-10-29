@@ -36,6 +36,16 @@ app são encontrados mesmo com o arquivo aqui.
 | `usar_edge_como_voz.bat/.py` | Define Edge-TTS como voz principal |
 | `usar_piper_como_voz.bat/.py` | Define Piper (offline) como voz principal |
 | `gerar_config_exemplo.py` | Gera `config/default.example.json` a partir do config real, anonimizando segredos (`--check` valida sem gravar) |
+| `verificar_spotify_e2e.py` | Teste ponta a ponta do Spotify: sube o bridge, espera a extensão do Spicetify, executa um comando real e confirma que o protocolo antigo (token na query) está bloqueado. `--json`, `--timeout`, `--no-launch` |
+| `benchmark_render.py` | Mede o tempo de pintura dos widgets animados (orbital/face/neural) e compara pixels com uma referência (`--save`/`--compare`). Não abre janela |
+
+Exemplos:
+
+```powershell
+.venv\Scripts\python.exe tools\verificar_spotify_e2e.py
+.venv\Scripts\python.exe tools\benchmark_render.py --save logs/render_bench
+.venv\Scripts\python.exe tools\benchmark_render.py --compare logs/render_bench
+```
 
 Os testes automatizados de verdade ficam em `../tests/` e rodam com
 `python -m unittest discover -s tests -p "test_*.py"`.
