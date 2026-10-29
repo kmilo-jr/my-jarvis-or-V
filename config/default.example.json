@@ -278,7 +278,7 @@
     "enabled": true,
     "host": "127.0.0.1",
     "port": 8766,
-    "token_file": "config/spotify_bridge_token.txt",
+    "token_file": "config/spotify_bridge_token.dat",
     "autostart": true,
     "extension_wait_seconds": 10.0,
     "command_timeout": 7.0,

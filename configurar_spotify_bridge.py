@@ -55,7 +55,31 @@ text = TEMPLATE.read_text(encoding='utf-8')
 if '__TOKEN__' not in text:
     print('Template da extensao sem marcador __TOKEN__; reinstale o V.')
     raise SystemExit(1)
-out.write_text(text.replace('__TOKEN__', token), encoding='utf-8')
+
+conteudo = text.replace('__TOKEN__', token)
+
+
+def _gravar_extensao() -> None:
+    out.write_text(conteudo, encoding='utf-8')
+
+
+try:
+    _gravar_extensao()
+except PermissionError as exc:
+    # Causa mais comum de longe: o Spotify esta aberto e segura/recarrega o
+    # arquivo da extensao durante o boot (CEF). A segunda causa e arquivo
+    # marcado como somente leitura por alguma copia/backup.
+    try:
+        out.chmod(0o666)  # limpa atributo somente leitura no Windows
+        _gravar_extensao()
+        print('AVISO: a extensao estava somente leitura; escrita reabilitada.')
+    except (PermissionError, OSError):
+        print('\nFALHA: nao foi possivel gravar a extensao em:')
+        print(' ', out)
+        print('O arquivo esta em uso. Feche COMPLETAMENTE o Spotify')
+        print('(icone na bandeja > Sair) e rode este configurador de novo.')
+        print('Detalhe:', exc)
+        raise SystemExit(4)
 if restrict_file_permissions(out):
     print('Permissoes restritas ao usuario atual:', out)
 else:
