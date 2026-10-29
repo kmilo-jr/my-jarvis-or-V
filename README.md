@@ -1,5 +1,7 @@
 # V Prototype 1.9.8 — V Remote LAN
 
+[![testes](https://github.com/kmilo-jr/my-jarvis-or-V/actions/workflows/tests.yml/badge.svg)](https://github.com/kmilo-jr/my-jarvis-or-V/actions/workflows/tests.yml)
+
 Assistente de desktop para Windows: interface animada, comandos de sistema por voz ou
 texto, memória persistente, briefing diário, notícias/mercado, Spotify, câmera e
 controle remoto **pela mesma rede local**.
