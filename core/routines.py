@@ -1,4 +1,5 @@
 """Editable local routines; only explicit routine commands trigger execution."""
+from app_paths import ROOT
 import json
 import os
 from pathlib import Path
@@ -6,7 +7,7 @@ import re
 import unicodedata
 import webbrowser
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = ROOT
 APPS = ("chrome", "edge", "firefox", "visual studio code", "discord", "spotify", "bloco de notas", "calculadora", "explorador")
 
 

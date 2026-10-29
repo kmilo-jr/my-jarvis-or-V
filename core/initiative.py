@@ -1,4 +1,5 @@
 """Local, explicit reminders and factual completion notices. No background actions."""
+from app_paths import ROOT
 from datetime import datetime
 import json
 import math
@@ -10,7 +11,7 @@ from uuid import uuid4
 
 class InitiativeStore:
     def __init__(self, path=None):
-        self.path = Path(path) if path else Path(__file__).resolve().parents[1] / "data" / "initiative.json"
+        self.path = Path(path) if path else ROOT / "data" / "initiative.json"
         self.lock = threading.RLock()
 
     @staticmethod

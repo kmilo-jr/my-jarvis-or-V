@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 import json
 import os
@@ -11,7 +12,7 @@ log = get_logger(__name__)
 
 
 def _base_dir() -> Path:
-    return Path(__file__).resolve().parent.parent
+    return ROOT
 
 
 def key_path(config: dict | None = None) -> Path:

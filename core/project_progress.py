@@ -1,4 +1,5 @@
 """Explicit project checkpoints with atomic storage and editable fields."""
+from app_paths import ROOT
 import json
 import re
 import threading
@@ -6,7 +7,7 @@ import unicodedata
 from datetime import datetime
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = ROOT
 
 
 def normalized(text):

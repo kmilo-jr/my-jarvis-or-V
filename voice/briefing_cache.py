@@ -1,4 +1,5 @@
 """Persistent cache restricted to three public, fixed briefing greetings."""
+from app_paths import ROOT
 import hashlib
 import json
 import shutil
@@ -6,7 +7,7 @@ import uuid
 import wave
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = ROOT
 GREETINGS = (
     'Olá, bom dia. É hora do seu resumo matinal. Vou passar para o meu colega Zê.',
     'Olá, boa tarde. É hora do seu resumo do dia. Vou passar para o meu colega Zê.',

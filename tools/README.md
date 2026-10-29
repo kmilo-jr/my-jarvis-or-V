@@ -38,6 +38,7 @@ app são encontrados mesmo com o arquivo aqui.
 | `gerar_config_exemplo.py` | Gera `config/default.example.json` a partir do config real, anonimizando segredos (`--check` valida sem gravar) |
 | `verificar_spotify_e2e.py` | Teste ponta a ponta do Spotify: sube o bridge, espera a extensão do Spicetify, executa um comando real e confirma que o protocolo antigo (token na query) está bloqueado. `--json`, `--timeout`, `--no-launch` |
 | `benchmark_render.py` | Mede o tempo de pintura dos widgets animados (orbital/face/neural) e compara pixels com uma referência (`--save`/`--compare`). Não abre janela |
+| `build_exe.ps1` | Gera o executável `dist\V\V.exe` com PyInstaller (`V.spec`) e copia assets/config para o lado do exe. `-SkipInstall` reaproveita o pyinstaller; `-NoClean` reaproveita o cache de build |
 
 Exemplos:
 

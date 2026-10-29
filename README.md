@@ -15,9 +15,10 @@ controle remoto **pela mesma rede local**.
 
 ## Começar
 
-1. Crie o ambiente: `py -3.12 -m venv .venv`
-2. Instale as dependências: `.venv\Scripts\python.exe -m pip install -r requirements.txt`
-3. Inicie:
+1. **Duplo clique em `setup.bat`** (cria `.venv` com Python 3.12, instala dependências,
+   cria `config/default.json` a partir do exemplo, compila e roda os testes).
+   Opções: `setup.bat -Lock` (ambiente completo com torch/TTS), `-SkipTests`, `-DryRun`.
+2. Inicie:
    - `iniciar_v_prototype.bat` — interface clássica (`main.py`)
    - `iniciar_v_dual_interface.bat` — interface dupla com **F6** alternando orbital/amber
      (`main_dual_ui.py`), inclui o controle remoto LAN
@@ -27,6 +28,18 @@ Ollama e o modelo configurado são necessários para conversa local. Recursos ex
 (Gemini, Groq, ElevenLabs, Spotify) ficam desativados até você configurá-los.
 
 Os `.bat` de `configurar_*` ajustam cada integração. Para voz local, veja `docs/guias/`.
+
+### Gerar o executável (distribuição)
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\tools\build_exe.ps1
+```
+
+Sai `dist\V\V.exe` (modo pasta, ~560 MB). O pacote mínimo **não** inclui torch/TTS,
+modelos Whisper baixados, runtime do Qwen nem `vendor/` — esses recursos só existem
+rodando do código-fonte com `requirements.lock.txt`. Edge-TTS, Piper, SAPI, ElevenLabs,
+Spotify, cérebro, visão e briefing entram normalmente. `config/`, `data/`, `logs/` são
+criados ao lado do `.exe` na primeira execução (`app_paths.ROOT`).
 
 ---
 

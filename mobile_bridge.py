@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 """V Mobile bridge.
 
@@ -17,7 +18,7 @@ import re
 import secrets
 import unicodedata
 
-BASE = Path(__file__).resolve().parent
+BASE = ROOT
 DATA_DIR = BASE / "data"
 ACTIONS_FILE = DATA_DIR / "mobile_actions.json"
 NOTIFICATIONS_FILE = DATA_DIR / "mobile_notifications.json"

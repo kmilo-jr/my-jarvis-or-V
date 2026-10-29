@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 from dataclasses import dataclass
 from types import SimpleNamespace
@@ -281,7 +282,7 @@ class FunctionalEngine:
         self.last_failure = None
         self.brain = brain
         self.memory = memory_store if memory_store is not None else _MemoryCompat()
-        self.history_path = Path(__file__).resolve().parent.parent / "data" / "conversation_history.json"
+        self.history_path = ROOT / "data" / "conversation_history.json"
         self.history: list[dict] = self._load_history()
         self.last_tool_context: list[dict] = []
         from .initiative import InitiativeStore
@@ -640,7 +641,7 @@ class FunctionalEngine:
     def _open_diagnostics_folder(self) -> FunctionalResult:
         """Abre a pasta local de logs/diagnóstico do V."""
         try:
-            logs_dir = Path(__file__).resolve().parent.parent / "logs"
+            logs_dir = ROOT / "logs"
             logs_dir.mkdir(parents=True, exist_ok=True)
             if hasattr(os, "startfile"):
                 os.startfile(str(logs_dir))
@@ -722,7 +723,7 @@ class FunctionalEngine:
             })
             results.append(self._tool_exec_to_result(execution))
         self.last_tool_context = trace_calls[-6:]
-        save_tool_trace(Path(__file__).resolve().parent.parent, {
+        save_tool_trace(ROOT, {
             "version": "1.0",
             "user_request": raw,
             "source": source,
@@ -767,7 +768,7 @@ class FunctionalEngine:
             if self.tools.get(name):
                 calls.append(ToolCall(name, args))
         if not calls:
-            save_tool_trace(Path(__file__).resolve().parent.parent, {
+            save_tool_trace(ROOT, {
                 "version": "1.0", "user_request": raw, "source": "ai_planner",
                 "planner": getattr(plan, "raw", None), "calls": [],
             })

@@ -1,9 +1,10 @@
 """Validated, independent preferences for the morning briefing."""
+from app_paths import ROOT
 import json
 import math
 from pathlib import Path
 
-PATH = Path(__file__).resolve().parents[1] / 'config' / 'briefing_preferences.json'
+PATH = ROOT / 'config' / 'briefing_preferences.json'
 ORDER = ['música', 'clima', 'agenda', 'pendências', 'mensagens', 'gmail', 'notícias']
 SOURCES = ['g1', 'Agência Brasil']
 

@@ -9,6 +9,7 @@ O módulo nunca afirma que consultou a web se a requisição falhar e sempre
 inclui as fontes/links disponíveis no resultado.
 """
 from __future__ import annotations
+from app_paths import ROOT
 
 import datetime as _dt
 import html
@@ -84,7 +85,7 @@ def _google_news_url(topic: str | None = None) -> str:
 def _write_web_error(kind: str, primary: Exception | str, fallback: Exception | str | None = None):
     """Registra o erro real sem deixar a interface presa em uma mensagem genérica."""
     try:
-        logs = Path(__file__).resolve().parent / "logs"
+        logs = ROOT / "logs"
         logs.mkdir(parents=True, exist_ok=True)
         payload = {
             "kind": kind,

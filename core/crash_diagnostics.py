@@ -1,4 +1,5 @@
 """Capture native failures and uncaught callbacks without recording user input."""
+from app_paths import ROOT
 import faulthandler
 import sys
 import traceback
@@ -13,7 +14,7 @@ def enable():
     if _stream is not None:
         return
     try:
-        folder = Path(__file__).resolve().parents[1] / 'logs'
+        folder = ROOT / 'logs'
         folder.mkdir(exist_ok=True)
         _stream = (folder / 'app_crash.log').open('a', encoding='utf-8', buffering=1)
         _stream.write(f'\nSession {datetime.now().isoformat()}\n')

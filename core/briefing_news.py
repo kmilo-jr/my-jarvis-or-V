@@ -1,4 +1,5 @@
 """Fresh publisher feeds, persistent rotation and preloaded article photos."""
+from app_paths import ROOT
 import base64
 from concurrent.futures import ThreadPoolExecutor
 from email.utils import parsedate_to_datetime
@@ -14,7 +15,7 @@ from bs4 import BeautifulSoup
 
 FEEDS = [('g1', 'https://g1.globo.com/rss/g1/'),
          ('Agência Brasil', 'https://agenciabrasil.ebc.com.br/rss/ultimasnoticias/feed.xml')]
-HISTORY_PATH = Path(__file__).resolve().parents[1] / 'data' / 'briefing_news_seen.json'
+HISTORY_PATH = ROOT / 'data' / 'briefing_news_seen.json'
 _lock = threading.Lock()
 
 

@@ -1,4 +1,5 @@
 """Authorized voice-sample registration for the configured ElevenLabs account."""
+from app_paths import ROOT
 from pathlib import Path
 import json
 
@@ -61,7 +62,7 @@ def register_voice_from_sample(sample_path, config=None, *, name="V Prime", desc
         raise VoiceCloneSetupError("Resposta do ElevenLabs não trouxe um voice_id.") from exc
     if not voice_id:
         raise VoiceCloneSetupError("Resposta do ElevenLabs não trouxe um voice_id.")
-    config_path = Path(config.get("config_path", Path(__file__).resolve().parents[1] / "config/default.json"))
+    config_path = Path(config.get("config_path", ROOT / "config/default.json"))
     document = json.loads(config_path.read_text(encoding="utf-8"))
     voice_cfg = document.setdefault("voice", {})
     previous = voice_cfg.get("tts_eleven_voice_id", "")

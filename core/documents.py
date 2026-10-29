@@ -1,4 +1,5 @@
 """Local document creation. Content is data, never executable code."""
+from app_paths import ROOT
 from pathlib import Path
 from datetime import datetime
 import json
@@ -7,7 +8,7 @@ import re
 import uuid
 import unicodedata
 
-OUTPUT_DIR = Path(__file__).resolve().parents[1] / 'exports'
+OUTPUT_DIR = ROOT / 'exports'
 
 def parse_request(text):
     raw = re.sub(r'^\s*(?:v|vi|jarvis)\b[ ,:]*', '', text, flags=re.I)

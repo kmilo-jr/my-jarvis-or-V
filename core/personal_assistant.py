@@ -1,4 +1,5 @@
 """Deterministic local lists and schedules, shared by voice, text and planner."""
+from app_paths import ROOT
 from datetime import datetime, timedelta
 import json
 from pathlib import Path
@@ -138,7 +139,7 @@ def parse_when(text, now):
 
 class ListStore:
     def __init__(self, path=None):
-        self.path = Path(path) if path else Path(__file__).resolve().parents[1] / 'data/lists.json'
+        self.path = Path(path) if path else ROOT / 'data/lists.json'
         self.lock = threading.RLock()
 
     def load(self):

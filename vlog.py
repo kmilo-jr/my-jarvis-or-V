@@ -18,13 +18,14 @@ HTTP; registre tipo da exceção e contexto curto.
 """
 
 from __future__ import annotations
+from app_paths import ROOT
 
 import logging
 import logging.handlers
 import sys
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
+BASE = ROOT
 LOG_DIR = BASE / "logs"
 _ARQUIVO = "v_assistant.log"
 _configurado = False

@@ -1,3 +1,4 @@
+from app_paths import ROOT
 from pathlib import Path
 import os
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QPushButton
@@ -30,6 +31,6 @@ class FailureHelp(QDialog):
 
     def configure(self, script):
         try:
-            os.startfile(str(Path(__file__).resolve().parents[1] / script))
+            os.startfile(str(ROOT / script))
         except OSError:
             self.message.setText('Não consegui abrir o configurador. Confira o arquivo na pasta do V.')

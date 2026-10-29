@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 import json
 import sys
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 from versao import BANNER
 from vlog import setup_logging
 
-BASE = Path(__file__).resolve().parent
+BASE = ROOT
 
 
 def load_config():

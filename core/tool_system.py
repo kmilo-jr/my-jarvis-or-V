@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -388,7 +389,7 @@ def build_default_registry(initiative_store=None, list_store=None) -> ToolRegist
                           lambda a, c: move_active_window(a.get('number')), move_guard, 'windows'))
 
     def open_diag(a, c):
-        root = Path(__file__).resolve().parent.parent
+        root = ROOT
         logs = root / "logs"
         logs.mkdir(parents=True, exist_ok=True)
         if hasattr(os, "startfile"):

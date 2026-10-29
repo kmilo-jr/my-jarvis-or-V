@@ -1,3 +1,4 @@
+from app_paths import ROOT
 import json
 from pathlib import Path
 
@@ -135,7 +136,7 @@ def voice_preferences(speed, expressive, narrate, preset="jarvis", xtts_voice=No
 
 
 def save_preferences(engine, speed, expressive, narrate, path=None, preset="jarvis", xtts_voice=None):
-    path = Path(path) if path else Path(__file__).resolve().parents[1] / "config/default.json"
+    path = Path(path) if path else ROOT / "config/default.json"
     changes = voice_preferences(speed, expressive, narrate, preset, xtts_voice=xtts_voice)
     data = json.loads(path.read_text(encoding="utf-8"))
     data.setdefault("voice", {}).update(changes)
@@ -152,7 +153,7 @@ def save_xtts_voice(engine, xtts_voice, path=None):
     """Select a local sample and activate its speech engine."""
     key = str(xtts_voice or "").strip().lower()
     changes = selection_settings(key)
-    path = Path(path) if path else Path(__file__).resolve().parents[1] / "config/default.json"
+    path = Path(path) if path else ROOT / "config/default.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     data.setdefault("voice", {}).update(changes)
     temp = path.with_suffix(".tmp")

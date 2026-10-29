@@ -1,4 +1,5 @@
 """Pinned Qwen Studio v0.2.9 C ABI; import only in the isolated worker."""
+from app_paths import ROOT
 import ctypes as C
 import json
 import os
@@ -8,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import soundfile as sf
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = ROOT
 BASE = ROOT / 'vendor/qwen-eval'
 RUNTIME = BASE / 'runtime/qwen-tts-studio'
 directories = [os.add_dll_directory(str(RUNTIME)), os.add_dll_directory(str(RUNTIME / 'runtime/bin'))]

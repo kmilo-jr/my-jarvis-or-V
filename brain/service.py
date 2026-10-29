@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 import json
 import re
@@ -427,7 +428,7 @@ class BrainService:
                 }
                 try:
                     from pathlib import Path
-                    log_dir = Path(__file__).resolve().parent.parent / "logs"
+                    log_dir = ROOT / "logs"
                     log_dir.mkdir(parents=True, exist_ok=True)
                     (log_dir / "live_search_last.json").write_text(json.dumps({
                         "query": text, "model": current_model, "web_queries": queries,

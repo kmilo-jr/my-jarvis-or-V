@@ -1,4 +1,5 @@
 """Own a resident Qwen worker without loading native CUDA libraries into the UI."""
+from app_paths import ROOT
 import json
 import os
 from pathlib import Path
@@ -88,7 +89,7 @@ class QwenBackend:
         if self.process is not None and self.process.poll() is None:
             return
         self._stop()
-        root = Path(__file__).resolve().parents[1]
+        root = ROOT
         responses = queue.Queue()
         threads = str(max(1, min(8, int(self.config.get('tts_qwen_cpu_threads', 2)))))
         process = subprocess.Popen(

@@ -15,6 +15,7 @@ Seguranca:
 """
 
 from __future__ import annotations
+from app_paths import ROOT
 
 import json
 import os
@@ -33,7 +34,7 @@ from urllib.parse import parse_qs, urlparse
 from secure_store import SecureStoreError, protect_text, unprotect_text
 from vlog import get_logger
 
-BASE = Path(__file__).resolve().parent
+BASE = ROOT
 CONFIG_PATH = BASE / "config" / "default.json"
 # Token protegido por DPAPI (formato atual). O .txt legado e so para migracao.
 TOKEN_FILE = BASE / "config" / "spotify_bridge_token.dat"

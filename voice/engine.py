@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 from collections import deque, OrderedDict
 import os
@@ -972,7 +973,7 @@ class VoiceEngine:
         ) or "").strip()
         path = Path(raw)
         if not path.is_absolute():
-            path = Path(__file__).resolve().parent.parent / path
+            path = ROOT / path
         return path
 
     def _load_xtts(self):
@@ -1230,7 +1231,7 @@ class VoiceEngine:
 
     def _resolve_qwen_reference(self):
         path = Path(self.config.get("tts_qwen_reference", "assets/voice/v_alt_reference_short.wav"))
-        return path if path.is_absolute() else Path(__file__).resolve().parents[1] / path
+        return path if path.is_absolute() else ROOT / path
 
     def _speak_qwen(self, text):
         import soundfile as sf
@@ -1584,7 +1585,7 @@ class VoiceEngine:
         raw = str(self.config.get("tts_piper_model", "models/piper/pt_BR-faber-medium.onnx")).strip()
         p = Path(raw)
         if not p.is_absolute():
-            p = Path(__file__).resolve().parent.parent / p
+            p = ROOT / p
         return p
 
     def _load_piper_voice(self):
@@ -2059,7 +2060,7 @@ class VoiceEngine:
         """Keep the actual output result, without recording spoken text or keys."""
         try:
             import json
-            path = Path(__file__).resolve().parents[1] / 'logs/tts_last.json'
+            path = ROOT / 'logs/tts_last.json'
             path.parent.mkdir(parents=True, exist_ok=True)
             data = {'profile': getattr(self, '_active_tts_profile', self.config.get('tts_profile')), 'error': self.last_tts_error,
                     'recorded_at': __import__('datetime').datetime.now().astimezone().isoformat(),

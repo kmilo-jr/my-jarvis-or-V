@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 import base64
 import hashlib
@@ -19,7 +20,7 @@ import requests
 from secure_store import SecureStoreError, protect_json, unprotect_json
 from vlog import get_logger
 
-BASE = Path(__file__).resolve().parent
+BASE = ROOT
 CONFIG_PATH = BASE / "config" / "default.json"
 TOKEN_PATH = BASE / "config" / "spotify_token.json"
 API = "https://api.spotify.com/v1"

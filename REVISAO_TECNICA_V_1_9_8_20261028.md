@@ -29,6 +29,7 @@ depois dela, e o que continua em aberto.
 | Spotify: teste e2e | `tools/verificar_spotify_e2e.py` automatiza o diagnóstico manual (bridge → extensão → comando real → bloqueio do protocolo antigo) e `tests/test_spotify_bridge_flow.py` cobre por unidade o protocolo por header, o lease 409 e o ciclo poll/result. Suíte: 392 testes. |
 | Performance do backdrop | `ui/briefing_scene.py` sem refazer trigonometria, com canetas e cores em cache e `QPainterPath.addPolygon`. Medido por `tools/benchmark_render.py`: **17,4 → 16,1 ms** tela cheia e **11,6 → 10,4 ms** na repintura parcial, com pixels idênticos (diff 0,000000). Chave morta `ui.animation_fps` removida do config. |
 | Robustez da voz e da UI | Falha de COM/`pythoncom` não mata mais a thread de saída (SAPI é desativado com log e Edge/Piper/XTTS seguem). A câmera é encerrada na troca de interface (F6), não só no fechamento. |
+| Caminhos e executável | `app_paths.py` virou a fonte única da raiz (funciona no código e no `.exe`, via `sys.frozen`), com 43 referências `Path(__file__)` migradas em 33 módulos. `setup.ps1`/`setup.bat` preparam uma máquina limpa. `V.spec` + `tools/build_exe.ps1` geram `dist\V\V.exe` (PyInstaller, ~560 MB) — validado rodando: bridge na 8766 com DPAPI e extensão do Spotify vista, servidor remoto na 8765, `config/`/`logs/` criados ao lado do exe. Sem torch/TTS/modelos locais no pacote mínimo. |
 | Git | O repositório já existia (remote `kmilo-jr/my-jarvis-or-V`) mas o estado da pasta não estava commitado. Criados dois commits na `main`: `8533a9f` (baseline) e `bfee612` (esta refatoração); árvore limpa com 387 arquivos versionados e nenhum segredo em `config/` (só o `default.example.json`). |
 
 **Validação executada**
@@ -40,12 +41,14 @@ depois dela, e o que continua em aberto.
 - Migração dos 4 segredos em texto puro: OK, releitura verificada.
 - `tools/verificar_spotify_e2e.py`: OK ao vivo (player real, protocolo antigo bloqueado, exit 0).
 - `tools/benchmark_render.py`: orbital 16,1 ms tela cheia / 10,4 ms região, pixels idênticos.
+- `setup.ps1 -DryRun` e `setup.ps1 -SkipTests`: OK (exit 0, venv detectado, config preservada).
+- `dist\V\V.exe` (PyInstaller): inicia, cria `config/`/`logs/` ao lado do exe, sobe bridge (8766, DPAPI, extensão online) e servidor remoto (8765), sem traceback.
 
 **Continua em aberto (por prioridade)**
 
-1. `requirements.txt` instalado puro ainda é mais leve que o ambiente real (torch/TTS fora do mínimo) — por isso o `requirements.lock.txt` existe; gerar um `setup.ps1` que una os dois continua pendente.
-2. `core/connections.py` só valida `access_mode == 'local'` — coerente agora, mas o teste de conexão continua raso.
-3. Empacotamento/distribuição (PyInstaller + instalador) não existe.
+1. `core/connections.py` só valida `access_mode == 'local'` — coerente agora, mas o teste de conexão continua raso.
+2. O `.exe` tem ~560 MB; dá para reduzir excluindo `transformers`/`hf_xet` (não usados pelo faster-whisper no fluxo atual) e revisando os módulos Qt. Não há instalador (só a pasta `dist\V`).
+3. Voz local (XTTS/Qwen), modelos Whisper baixados e `vendor/` não vão no pacote mínimo — distribuir com esses recursos exige um segundo pacote/instalador de modelos.
 4. A pintura do backdrop ainda é feita no thread da GUI; para folga extra daria para reduzir pontos dos anéis com perda visual imperceptível (hoje a geometria é preservada ao pixel).
 
 ---

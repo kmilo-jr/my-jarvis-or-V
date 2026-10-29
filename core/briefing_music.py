@@ -1,9 +1,10 @@
 """Start the configured Spotify playlist in shuffle mode for the briefing."""
+from app_paths import ROOT
 import json
 from pathlib import Path
 import re
 
-CONFIG_PATH = Path(__file__).resolve().parents[1] / 'config' / 'briefing_music.json'
+CONFIG_PATH = ROOT / 'config' / 'briefing_music.json'
 
 
 def configured_playlist():

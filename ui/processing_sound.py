@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 
 from pathlib import Path
 
@@ -19,7 +20,7 @@ class ProcessingSoundController(QObject):
         self.enabled = bool(self.config.get("processing_sound_enabled", True))
         self.delay_ms = max(0, int(self.config.get("processing_sound_delay_ms", 260)))
         self.volume = max(0.0, min(1.0, float(self.config.get("processing_sound_volume", 0.16))))
-        base = Path(__file__).resolve().parent.parent
+        base = ROOT
         configured = str(self.config.get("processing_sound_file", "assets/sounds/v_processing.wav"))
         p = Path(configured)
         self.sound_path = p if p.is_absolute() else base / p

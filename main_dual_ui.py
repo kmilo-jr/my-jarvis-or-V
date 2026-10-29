@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 import json
 import sys
 from pathlib import Path
@@ -10,7 +11,7 @@ from vlog import get_logger
 
 log = get_logger(__name__)
 
-BASE=Path(__file__).resolve().parent
+BASE=ROOT
 
 
 class RemoteBridge(QObject):

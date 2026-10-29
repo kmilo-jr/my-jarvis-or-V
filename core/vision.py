@@ -1,5 +1,6 @@
 """Local object detection. No camera, network, storage or action execution here."""
 from __future__ import annotations
+from app_paths import ROOT
 
 from collections import Counter
 from dataclasses import dataclass
@@ -11,7 +12,7 @@ import unicodedata
 import numpy as np
 from PIL import Image
 
-MODEL = Path(__file__).resolve().parents[1] / 'models/vision/yolox_nano.onnx'
+MODEL = ROOT / 'models/vision/yolox_nano.onnx'
 MODEL_SHA256 = 'c789161ed43c8269fcd4e67c67eeeb4e80c622da2eb296a20bc6007bd18a0b7d'
 LABELS = ('pessoa|bicicleta|carro|moto|avião|ônibus|trem|caminhão|barco|semáforo|hidrante|'
           'placa de pare|parquímetro|banco|pássaro|gato|cachorro|cavalo|ovelha|vaca|elefante|'

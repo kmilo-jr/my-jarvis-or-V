@@ -1,4 +1,5 @@
 """Groq text and JSON adapter, without remote execution of V tools."""
+from app_paths import ROOT
 import base64
 import json
 import os
@@ -6,7 +7,7 @@ from pathlib import Path
 import time
 import requests
 
-KEY_PATH = Path(__file__).resolve().parents[1] / 'config' / 'groq_key.dat'
+KEY_PATH = ROOT / 'config' / 'groq_key.dat'
 DEFAULT_MODEL = 'openai/gpt-oss-120b'
 
 

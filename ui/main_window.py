@@ -1,4 +1,5 @@
 from __future__ import annotations
+from app_paths import ROOT
 import datetime
 import difflib
 import json
@@ -152,7 +153,7 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.orchestrator = orchestrator; self.registry = registry; self.voice_engine = voice_engine
         try:
-            cfg_path = Path(__file__).resolve().parent.parent / "config" / "default.json"
+            cfg_path = ROOT / "config" / "default.json"
             self.ui_config = json.loads(cfg_path.read_text(encoding="utf-8")).get("ui", {})
         except Exception:
             self.ui_config = {}
@@ -640,7 +641,7 @@ class MainWindow(QMainWindow):
             if device is not None:
                 info, _rate = self.voice_engine._device_info(device)
                 name = str(info.get("name", "")).strip()
-            cfg_path = Path(__file__).resolve().parent.parent / "config" / "default.json"
+            cfg_path = ROOT / "config" / "default.json"
             cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
             cfg.setdefault("voice", {})["preferred_input_device_name"] = name
             cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")
@@ -1186,7 +1187,7 @@ class MainWindow(QMainWindow):
             if tr is not None: pieces.append(f"Whisper {float(tr):.0f} ms")
             pieces.append(f"Core {total_ms:.0f} ms")
             self.latency_status.setText("LATÊNCIA: " + " • ".join(pieces))
-            logs=Path(__file__).resolve().parent.parent/'logs'; logs.mkdir(parents=True,exist_ok=True)
+            logs=ROOT/'logs'; logs.mkdir(parents=True,exist_ok=True)
             (logs/'latency_last.json').write_text(json.dumps({"first_speech_ms":first_ms,"brain_ms":brain_ms,"command_total_ms":round(total_ms,1),"input":self._active_input_meta},ensure_ascii=False,indent=2),encoding='utf-8')
         except Exception:
             pass
@@ -1307,7 +1308,7 @@ class MainWindow(QMainWindow):
     def _toggle_processing_sound(self, enabled):
         self.processing_sound.set_enabled(bool(enabled))
         try:
-            cfg_path = Path(__file__).resolve().parent.parent / "config" / "default.json"
+            cfg_path = ROOT / "config" / "default.json"
             cfg = json.loads(cfg_path.read_text(encoding="utf-8"))
             cfg.setdefault("ui", {})["processing_sound_enabled"] = bool(enabled)
             cfg_path.write_text(json.dumps(cfg, ensure_ascii=False, indent=2), encoding="utf-8")

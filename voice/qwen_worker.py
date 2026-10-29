@@ -1,4 +1,5 @@
 """Resident local synthesis worker. Stdout is a JSON protocol, logs are separate."""
+from app_paths import ROOT
 import hashlib
 import json
 import math
@@ -8,7 +9,7 @@ import sys
 import time
 from collections import OrderedDict
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = ROOT
 
 
 def valid_embedding(path):
