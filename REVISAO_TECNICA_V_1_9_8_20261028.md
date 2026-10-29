@@ -24,6 +24,7 @@ depois dela, e o que continua em aberto.
 | Versão | `versao.py` é a fonte única (1.9.8 / `V198-LAN-20261028`), usada por `main.py`, `ui/main_window.py`, `main_dual_ui.py`, `ui/amber_window.py` e pelos `.bat` de inicialização. `VERSAO.txt` atualizado. |
 | Config e ambiente | `config/default.example.json` agora é gerado do real (254 chaves, 2 valores anonimizados) por `tools/gerar_config_exemplo.py`; `requirements.lock.txt` regenerado por `pip freeze` (132 pacotes); `.bat` de inicialização usam `.venv`. |
 | Organização | Raiz de ~230 para 55 arquivos: docs em `docs/{guias,historico,changelog,preview}`, scripts em `tools/`, migradores antigos em `docs/historico/migracoes/`. `README.md` reescrito. |
+| Bridge Spotify (pós-uso real) | A extensão reescrita falhava dentro do Spotify: `status()` lançava exceção em um getter real e, como resultado e heartbeat eram montados no mesmo `try`, o `POST /result` nunca acontecia (comando ficava "em andamento" e voltava 504). Agora cada campo de estado é lido defensivamente e falha de status não bloqueia o resultado. Validado ao vivo no Spotify 1.3.6: extensão online em 1 s e `volume`, `status` e `shuffle` retornando 200 com dados reais. |
 | Git | O repositório já existia (remote `kmilo-jr/my-jarvis-or-V`) mas o estado da pasta não estava commitado. Criados dois commits na `main`: `8533a9f` (baseline) e `bfee612` (esta refatoração); árvore limpa com 387 arquivos versionados e nenhum segredo em `config/` (só o `default.example.json`). |
 
 **Validação executada**
