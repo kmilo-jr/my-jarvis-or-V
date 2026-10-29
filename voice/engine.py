@@ -1911,10 +1911,21 @@ class VoiceEngine:
     def _tts_loop(self):
         """Saída de voz: Edge-TTS natural, Piper offline e SAPI5 em cascata."""
         receipt = None
+        sapi_disponivel = False
         try:
-            import pythoncom
-            import win32com.client
-            pythoncom.CoInitialize()
+            try:
+                import pythoncom
+                import win32com.client
+                pythoncom.CoInitialize()
+                sapi_disponivel = True
+            except Exception as exc:
+                # Sem COM/SAPI a voz ainda pode sair por Edge, Piper, XTTS ou
+                # ElevenLabs; a thread de saida NAO pode morrer por causa disso.
+                pythoncom = None
+                log.warning(
+                    "TTS: COM/SAPI indisponivel (%s); seguindo com os outros motores",
+                    type(exc).__name__,
+                )
             voice = None  # Only initialize SAPI if a local fallback is needed.
             while True:
                 item = self._tts_queue.get()
@@ -1989,6 +2000,10 @@ class VoiceEngine:
 
                     if not spoken and not self._active_cancel.is_set():
                         # Ultimo fallback local do Windows.
+                        if not sapi_disponivel:
+                            if not self.last_tts_error:
+                                self.last_tts_error = "SAPI indisponível (COM não inicializou)"
+                            continue
                         log.warning("voz selecionada indisponível; usando SAPI do Windows como último recurso: %s", self.last_tts_error or "motivo desconhecido")
                         if voice is None:
                             voice = win32com.client.Dispatch("SAPI.SpVoice")
@@ -2023,7 +2038,8 @@ class VoiceEngine:
                         state = 'cancelled' if self._active_cancel.is_set() else 'done' if spoken and not self.last_tts_error else 'failed'
                         receipt.update(state=state, error=self.last_tts_error)
                     self._save_tts_diagnostic(speech_started)
-            pythoncom.CoUninitialize()
+            if pythoncom is not None:
+                pythoncom.CoUninitialize()
         except Exception as exc:
             self.last_tts_error = type(exc).__name__ + ": " + str(exc)
             self.tts_status = "Falha na saída de voz: " + self.last_tts_error

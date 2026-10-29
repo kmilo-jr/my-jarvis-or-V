@@ -6,6 +6,9 @@ from PySide6.QtCore import QObject,QTimer,Signal,Slot
 from PySide6.QtWidgets import QApplication
 from main import build_app
 from versao import TITULO
+from vlog import get_logger
+
+log = get_logger(__name__)
 
 BASE=Path(__file__).resolve().parent
 
@@ -269,6 +272,14 @@ class UiModeManager(QObject):
             try:
                 if hasattr(old,'timer'): old.timer.stop()
             except Exception: pass
+            # A camera precisa ser liberada na troca (F6), nao so no fechamento:
+            # sem isso ela continua capturando com a janela antiga destruida.
+            try:
+                camera = getattr(old, '_camera_panel', None)
+                if camera is not None:
+                    camera.shutdown()
+            except Exception as exc:
+                log.warning("falha ao encerrar a camera na troca de interface: %s", type(exc).__name__)
             old._mode_switching=True
             old.game_mode.shutdown()
             old.hide(); old.deleteLater()

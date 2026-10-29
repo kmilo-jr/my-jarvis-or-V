@@ -1,4 +1,4 @@
-﻿# Ambiente validado do V 1.9.8 (Windows, Python 3.12.10) - gerado por pip freeze em 2026-10-28.
+﻿# Ambiente validado do V 1.9.8 (Windows, Python 3.12.10) - gerado por pip freeze em 2026-10-29.
 # requirements.txt = instalavel minimo do app.
 # Este lock inclui o ambiente completo de voz (torch/TTS) usado no desenvolvimento.
 
@@ -27,6 +27,7 @@ ctranslate2==4.8.2
 cycler==0.12.1
 decorator==5.3.1
 docopt==0.6.2
+edge-tts==7.3.1
 einops==0.8.2
 et_xmlfile==2.0.0
 faster-whisper==1.2.1

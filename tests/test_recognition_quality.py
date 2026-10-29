@@ -1,4 +1,5 @@
 import json
+import math
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
@@ -155,18 +156,32 @@ class RecognitionQualityTests(unittest.TestCase):
 
     def test_long_sentence_preserves_half_second_pause(self):
         config = json.loads((Path(__file__).resolve().parents[1] / "config/default.json").read_text(encoding="utf-8"))["voice"]
-        detector = AdaptiveEndpointDetector(block_seconds=0.03,
+        bloco = 0.03
+        detector = AdaptiveEndpointDetector(block_seconds=bloco,
             short_end_silence_seconds=config["v2_short_end_silence_seconds"],
             long_end_silence_seconds=config["v2_long_end_silence_seconds"],
             long_phrase_after_seconds=config["v2_long_phrase_after_seconds"])
-        for _ in range(40):
+
+        # Fala até entrar no regime de "frase longa" (silencio exigido maior),
+        # sem números mágicos: se a config mudar, o teste continua correto.
+        for _ in range(10000):
             detector.push(hot=True, quiet=False)
-        for _ in range(17):
-            detector.push(hot=False, quiet=True)
+            if detector.speech_time >= config["v2_long_phrase_after_seconds"]:
+                break
         self.assertFalse(detector.ended)
-        for _ in range(5):
+        self.assertGreaterEqual(detector.speech_time, config["v2_long_phrase_after_seconds"])
+
+        exigido = detector.required_silence
+        blocos_ate_encerrar = math.ceil(exigido / bloco)
+
+        # Uma pausa um bloco menor que o exigido NÃO encerra a frase...
+        for _ in range(blocos_ate_encerrar - 1):
             detector.push(hot=False, quiet=True)
-        self.assertTrue(detector.ended)
+        self.assertFalse(detector.ended, "pausa abaixo do limite não pode encerrar a frase")
+
+        # ...e o bloco seguinte, que atinge o exigido, encerra.
+        detector.push(hot=False, quiet=True)
+        self.assertTrue(detector.ended, "silencio igual ao exigido deve encerrar a frase")
 
     def test_unpunctuated_reply_starts_with_bounded_chunk(self):
         engine = VoiceEngine({"tts_chunk_max_chars": 150})
