@@ -30,24 +30,46 @@
   const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
   function status() {
-    const d = Spicetify.Player.data;
-    const track = (d && (d.item || d.track)) || (Spicetify.Queue && Spicetify.Queue.track) || null;
+    // Cada campo e lido de forma defensiva: em algumas versoes do Spicetify um
+    // getter ausente/inicializando lancava excecao aqui, o que derrubava o
+    // heartbeat E o POST /result (o comando nunca "voltava" para o V).
+    const safe = (fn, fallback = null) => {
+      try {
+        const v = fn();
+        return v === undefined ? fallback : v;
+      } catch (_) {
+        return fallback;
+      }
+    };
+    const d = safe(() => Spicetify.Player.data, null);
+    const track = safe(() => (d && (d.item || d.track)) || (Spicetify.Queue && Spicetify.Queue.track), null);
     let title = null, artist = null, uri = null;
     if (track) {
-      uri = track.uri || null;
-      const m = track.metadata || {};
-      title = m.title || m.name || null;
-      artist = m.artist_name || m.artist || null;
+      uri = safe(() => track.uri, null);
+      const m = safe(() => track.metadata, {}) || {};
+      title = safe(() => m.title || m.name, null);
+      artist = safe(() => m.artist_name || m.artist, null);
     }
     return {
-      playing: !!Spicetify.Player.isPlaying(),
-      volume: Number(Spicetify.Player.getVolume?.() ?? 0),
+      playing: !!safe(() => Spicetify.Player.isPlaying(), false),
+      volume: Number(safe(() => Spicetify.Player.getVolume(), 0)),
       uri, title, artist,
-      context_uri: d?.context_uri || d?.context?.uri || null,
-      position_ms: Number(Spicetify.Player.getProgress?.() ?? 0),
-      duration_ms: Number(Spicetify.Player.getDuration?.() ?? 0),
-      shuffle: !!Spicetify.Player.getShuffle?.()
+      context_uri: safe(() => (d && (d.context_uri || (d.context && d.context.uri))) || null, null),
+      position_ms: Number(safe(() => Spicetify.Player.getProgress(), 0)),
+      duration_ms: Number(safe(() => Spicetify.Player.getDuration(), 0)),
+      shuffle: !!safe(() => Spicetify.Player.getShuffle(), false)
     };
+  }
+
+  // Nunca deixa uma falha de leitura de estado impedir o resultado do comando.
+  function safeStatus() {
+    try {
+      return status();
+    } catch (e) {
+      const erro = String((e && e.message) || e);
+      try { console.error('[V Spotify Bridge] status falhou:', erro); } catch (_) {}
+      return {error: erro};
+    }
   }
 
   async function send(path, body) {
@@ -93,9 +115,9 @@
         let result;
         try {
           await execute(cmd);
-          result = {id:cmd.id, ok:true, action:cmd.action, status:status()};
+          result = {id:cmd.id, ok:true, action:cmd.action, status:safeStatus()};
         } catch (e) {
-          result = {id:cmd.id, ok:false, action:cmd.action, error:String(e?.message || e), status:status()};
+          result = {id:cmd.id, ok:false, action:cmd.action, error:String(e?.message || e), status:safeStatus()};
         }
         await send('/result', result);
       }
@@ -107,7 +129,7 @@
   }
 
   setInterval(() => {
-    send('/heartbeat', {status:status()}).catch(()=>{});
+    send('/heartbeat', {status:safeStatus()}).catch(()=>{});
   }, 3000);
 
   console.log('[V Spotify Bridge] online');
